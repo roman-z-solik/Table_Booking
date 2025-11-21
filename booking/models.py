@@ -14,14 +14,17 @@ class Table(models.Model):
         (8, '8 человек'),
     ]
 
-    number = models.PositiveIntegerField(unique=True)
-    capacity = models.PositiveIntegerField(choices=CAPACITY_CHOICES)
-    is_vip = models.BooleanField(default=False)
-    description = models.TextField(blank=True)
-    is_active = models.BooleanField(default=True)
+    number = models.PositiveIntegerField(unique=True, verbose_name='Номер столика')
+    capacity = models.PositiveIntegerField(choices=CAPACITY_CHOICES, verbose_name='Вместимость')
+    is_vip = models.BooleanField(default=False, verbose_name='VIP столик')
+    description = models.TextField(blank=True, verbose_name='Описание')
+    is_active = models.BooleanField(default=True, verbose_name='Активен')
+
+    class Meta:
+        verbose_name = 'Столик'
+        verbose_name_plural = 'Столики'
 
     def __str__(self):
-        """Строковое представление столика."""
         return f"Столик №{self.number} ({self.get_capacity_display()})"
 
 
@@ -33,16 +36,20 @@ class Booking(models.Model):
         ('cancelled', 'Отменено'),
     ]
 
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    table = models.ForeignKey(Table, on_delete=models.CASCADE)
-    date = models.DateField()
-    start_time = models.TimeField()
-    duration_hours = models.PositiveIntegerField()
-    end_time = models.TimeField()
-    guests_count = models.PositiveIntegerField()
-    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active')
-    special_requests = models.TextField(blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name='Пользователь')
+    table = models.ForeignKey(Table, on_delete=models.CASCADE, verbose_name='Столик')
+    date = models.DateField(verbose_name='Дата')
+    start_time = models.TimeField(verbose_name='Время начала')
+    duration_hours = models.PositiveIntegerField(verbose_name='Продолжительность (часов)')
+    end_time = models.TimeField(verbose_name='Время окончания')
+    guests_count = models.PositiveIntegerField(verbose_name='Количество гостей')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='active', verbose_name='Статус')
+    special_requests = models.TextField(blank=True, verbose_name='Особые пожелания')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+
+    class Meta:
+        verbose_name = 'Бронирование'
+        verbose_name_plural = 'Бронирования'
 
     def clean(self):
         """Валидация данных бронирования перед сохранением."""
@@ -74,20 +81,21 @@ class Booking(models.Model):
         super().save(*args, **kwargs)
 
     def __str__(self):
-        """Строковое представление бронирования."""
         return f"{self.date} {self.start_time} - {self.user.email}"
 
 
 class Feedback(models.Model):
     """Модель обратной связи от пользователей."""
 
-    name = models.CharField(max_length=100)
-    email = models.EmailField()
-    phone = models.CharField(max_length=20, blank=True)
-    message = models.TextField()
-    created_at = models.DateTimeField(auto_now_add=True)
+    name = models.CharField(max_length=100, verbose_name='Имя')
+    email = models.EmailField(verbose_name='Email')
+    phone = models.CharField(max_length=20, blank=True, verbose_name='Телефон')
+    message = models.TextField(verbose_name='Сообщение')
+    created_at = models.DateTimeField(auto_now_add=True, verbose_name='Создано')
+
+    class Meta:
+        verbose_name = 'Обратная связь'
+        verbose_name_plural = 'Обратная связь'
 
     def __str__(self):
-        """Строковое представление отзыва."""
         return f"{self.name} - {self.created_at}"
-    
