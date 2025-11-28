@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto text-center">
+        <h1>Добро пожаловать в наш ресторан</h1>
+        <p class="lead">Забронируйте столик онлайн</p>
+        {% if user.is_authenticated %}
+        <a href="{% url 'booking_create' %}" class="btn btn-primary btn-lg me-2">Забронировать столик</a>
+        <a href="{% url 'booking_list' %}" class="btn btn-outline-primary btn-lg">Мои бронирования</a>
+        {% else %}
+        <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-2">Зарегистрироваться</a>
+        <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">Войти</a>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
