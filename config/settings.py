@@ -46,6 +46,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
+                'config.context_processors.restaurant_info',
             ],
         },
     },
@@ -101,11 +102,14 @@ EMAIL_PORT = int(os.getenv('EMAIL_PORT'))
 EMAIL_USE_TLS = os.getenv('EMAIL_USE_TLS')
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = 'roman-z@inbox.ru'
 
+RESTAURANT_NAME = os.getenv('RESTAURANT_NAME')
+RESTAURANT_DESCRIPTION = os.getenv('RESTAURANT_DESCRIPTION')
+CONTACT_PHONE = os.getenv('CONTACT_PHONE')
+CONTACT_EMAIL = os.getenv('CONTACT_EMAIL')
+ADDRESS = os.getenv('ADDRESS')
 OPEN_TIME = os.getenv('OPEN_TIME')
 CLOSE_TIME = os.getenv('CLOSE_TIME')
 MIN_BOOKING_HOURS = int(os.getenv('MIN_BOOKING_HOURS'))
 MAX_BOOKING_HOURS = int(os.getenv('MAX_BOOKING_HOURS'))
-CONTACT_PHONE = os.getenv('CONTACT_PHONE')
-CONTACT_EMAIL = os.getenv('CONTACT_EMAIL')
-ADDRESS = os.getenv('ADDRESS')

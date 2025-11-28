@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Отмена бронирования - {{ restaurant_name }}</title>
+</head>
+<body>
+    <h2>Бронирование отменено</h2>
+    <p>Уважаемый(ая) {{ user.first_name }},</p>
+    <p>Ваше бронирование в {{ restaurant_name }} было отменено.</p>
+    <p><strong>Детали отмененного бронирования:</strong></p>
+    <ul>
+        <li>Столик: №{{ booking.table.number }}</li>
+        <li>Дата: {{ booking.date }}</li>
+        <li>Время: {{ booking.start_time }} - {{ booking.end_time }}</li>
+        <li>Гостей: {{ booking.guests_count }}</li>
+    </ul>
+    <p>Если отмена произошла по ошибке, свяжитесь с нами.</p>
+    <p><strong>Контактная информация:</strong></p>
+    <p>Телефон: {{ contact_phone }}</p>
+    <p>Email: {{ contact_email }}</p>
+    <p>С уважением,<br>Команда {{ restaurant_name }}</p>
+</body>
+</html>

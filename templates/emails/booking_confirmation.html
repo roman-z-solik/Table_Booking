@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Подтверждение бронирования - {{ restaurant_name }}</title>
+</head>
+<body>
+    <h2>Бронирование подтверждено!</h2>
+    <p>Уважаемый(ая) {{ user.first_name }},</p>
+    <p>Ваш столик в {{ restaurant_name }} успешно забронирован.</p>
+    <p><strong>Детали бронирования:</strong></p>
+    <ul>
+        <li>Столик: №{{ booking.table.number }}</li>
+        <li>Дата: {{ booking.date }}</li>
+        <li>Время: {{ booking.start_time }} - {{ booking.end_time }}</li>
+        <li>Гостей: {{ booking.guest_count }}</li>
+        {% if booking.special_requests %}
+        <li>Особые пожелания: {{ booking.special_requests }}</li>
+        {% endif %}
+    </ul>
+    <p><strong>Адрес ресторана:</strong> {{ address }}</p>
+    <p>Телефон для связи: {{ contact_phone }}</p>
+    <p>С уважением,<br>Команда {{ restaurant_name }}</p>
+</body>
+</html>

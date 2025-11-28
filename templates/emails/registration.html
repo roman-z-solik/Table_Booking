@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Добро пожаловать в {{ restaurant_name }}!</title>
+</head>
+<body>
+    <h2>Добро пожаловать в {{ restaurant_name }}!</h2>
+    <p>Уважаемый(ая) {{ user.first_name }},</p>
+    <p>Ваш аккаунт успешно создан.</p>
+    <p>Email: {{ user.email }}</p>
+    <p><strong>Контактная информация:</strong></p>
+    <p>Адрес: {{ address }}</p>
+    <p>Телефон: {{ contact_phone }}</p>
+    <p>С уважением,<br>Команда {{ restaurant_name }}</p>
+</body>
+</html>

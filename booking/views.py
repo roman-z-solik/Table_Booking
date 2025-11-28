@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.utils import timezone
 from .models import Booking, Table
 from .forms import BookingForm
+from .utils import send_booking_email
 
 
 def home(request):
@@ -19,8 +20,24 @@ def booking_create(request):
         if form.is_valid():
             booking = form.save(commit=False)
             booking.user = request.user
+
+            if not booking.table.is_available(booking.date, booking.start_time, booking.duration_hours):
+                messages.error(request, 'Этот столик уже занят на выбранное время.')
+                return render(request, 'booking/booking_form.html', {'form': form})
+
             try:
                 booking.save()
+
+                try:
+                    send_booking_email(
+                        request.user,
+                        booking,
+                        'Подтверждение бронирования',
+                        'emails/booking_confirmation.html'
+                    )
+                except Exception as e:
+                    print(f"Ошибка отправки email: {e}")
+
                 messages.success(request, 'Столик успешно забронирован!')
                 return redirect('booking_list')
             except Exception as e:
@@ -49,5 +66,16 @@ def booking_cancel(request, booking_id):
     if booking.status == 'active':
         booking.status = 'cancelled'
         booking.save()
+
+        try:
+            send_booking_email(
+                request.user,
+                booking,
+                'Отмена бронирования',
+                'emails/booking_cancellation.html'
+            )
+        except Exception as e:
+            print(f"Ошибка отправки email: {e}")
+
         messages.success(request, 'Бронирование отменено.')
     return redirect('booking_list')

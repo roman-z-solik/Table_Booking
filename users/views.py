@@ -3,6 +3,8 @@ from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from booking.utils import send_registration_email
+
 
 def register(request):
     """Регистрация нового пользователя."""
@@ -11,11 +13,22 @@ def register(request):
         if form.is_valid():
             user = form.save()
             login(request, user)
+
+            try:
+                send_registration_email(
+                    user,
+                    'Добро пожаловать в наш ресторан!',
+                    'emails/registration.html'
+                )
+            except Exception as e:
+                print(f"Ошибка отправки email: {e}")
+
             messages.success(request, 'Регистрация прошла успешно!')
             return redirect('home')
     else:
         form = CustomUserCreationForm()
     return render(request, 'users/register.html', {'form': form})
+
 
 def user_login(request):
     """Вход пользователя."""
