@@ -2,6 +2,7 @@ from django import forms
 from .models import Booking, Table
 from datetime import date, timedelta
 
+
 class BookingForm(forms.ModelForm):
     """Форма бронирования столика."""
 
@@ -14,6 +15,14 @@ class BookingForm(forms.ModelForm):
             'duration_hours': forms.NumberInput(attrs={'class': 'form-control', 'min': 1, 'max': 4}),
             'guests_count': forms.NumberInput(attrs={'class': 'form-control', 'min': 1}),
             'special_requests': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+        }
+        labels = {
+            'table': 'Столик',
+            'date': 'Дата',
+            'start_time': 'Время начала',
+            'duration_hours': 'Продолжительность (часов)',
+            'guests_count': 'Количество гостей',
+            'special_requests': 'Особые пожелания',
         }
 
     def __init__(self, *args, **kwargs):
