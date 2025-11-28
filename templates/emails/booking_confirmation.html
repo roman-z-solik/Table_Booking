@@ -13,13 +13,15 @@
         <li>Столик: №{{ booking.table.number }}</li>
         <li>Дата: {{ booking.date }}</li>
         <li>Время: {{ booking.start_time }} - {{ booking.end_time }}</li>
-        <li>Гостей: {{ booking.guest_count }}</li>
+        <li>Гостей: {{ booking.guests_count }}</li>
         {% if booking.special_requests %}
         <li>Особые пожелания: {{ booking.special_requests }}</li>
         {% endif %}
     </ul>
-    <p><strong>Адрес ресторана:</strong> {{ address }}</p>
-    <p>Телефон для связи: {{ contact_phone }}</p>
+    <p><strong>Контактная информация:</strong></p>
+    <p>Адрес: {{ address }}</p>
+    <p>Телефон: {{ contact_phone }}</p>
+    <p>Email: {{ contact_email }}</p>
     <p>С уважением,<br>Команда {{ restaurant_name }}</p>
 </body>
 </html>

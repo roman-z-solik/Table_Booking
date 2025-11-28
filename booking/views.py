@@ -79,3 +79,8 @@ def booking_cancel(request, booking_id):
 
         messages.success(request, 'Бронирование отменено.')
     return redirect('booking_list')
+
+
+def about(request):
+    """Страница о ресторане."""
+    return render(request, 'booking/about.html')

@@ -1,0 +1,45 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <h1>О ресторане {{ restaurant_name }}</h1>
+        
+        <div class="row mt-4">
+            <div class="col-md-6">
+                <h3>Наша история</h3>
+                <p>Ресторан {{ restaurant_name }} был основан с любовью к настоящей кухне и гостеприимству.</p>
+                <p>Мы стремимся создавать неповторимую атмосферу для наших гостей.</p>
+            </div>
+            <div class="col-md-6">
+                <h3>Наша миссия</h3>
+                <p>Дарить нашим гостям незабываемые гастрономические впечатления и безупречный сервис.</p>
+            </div>
+        </div>
+
+        <div class="row mt-5">
+            <div class="col-12">
+                <h3>Контакты</h3>
+                <div class="row">
+                    <div class="col-md-4">
+                        <p><strong>Адрес:</strong><br>{{ address }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Телефон:</strong><br>{{ contact_phone }}</p>
+                    </div>
+                    <div class="col-md-4">
+                        <p><strong>Email:</strong><br>{{ contact_email }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mt-4">
+            <div class="col-12">
+                <h3>Часы работы</h3>
+                <p>Ежедневно с {{ open_time }} до {{ close_time }}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

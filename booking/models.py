@@ -5,8 +5,6 @@ from datetime import datetime, timedelta
 
 
 class Table(models.Model):
-    """Модель столика ресторана."""
-
     CAPACITY_CHOICES = [
         (2, '2 человека'),
         (4, '4 человека'),
@@ -27,10 +25,25 @@ class Table(models.Model):
     def __str__(self):
         return f"Столик №{self.number} ({self.get_capacity_display()})"
 
+    def is_available(self, date, start_time, duration_hours):
+        """Проверка доступности столика на указанное время."""
+        start_datetime = datetime.combine(date, start_time)
+        end_datetime = start_datetime + timedelta(hours=duration_hours)
+        end_time = end_datetime.time()
+
+        conflicting_bookings = Booking.objects.filter(
+            table=self,
+            date=date,
+            status='active'
+        ).exclude(
+            start_time__gte=end_time,
+            end_time__lte=start_time
+        )
+
+        return not conflicting_bookings.exists()
+
 
 class Booking(models.Model):
-    """Модель бронирования столика."""
-
     STATUS_CHOICES = [
         ('active', 'Активно'),
         ('cancelled', 'Отменено'),
