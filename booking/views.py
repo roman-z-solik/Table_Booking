@@ -1,10 +1,10 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.utils import timezone
 from .models import Booking, Table
 from .forms import BookingForm
 from .utils import send_booking_email
+from .forms import FeedbackForm
 
 
 def home(request):
@@ -84,3 +84,17 @@ def booking_cancel(request, booking_id):
 def about(request):
     """Страница о ресторане."""
     return render(request, 'booking/about.html')
+
+
+def feedback(request):
+    """Форма обратной связи."""
+    if request.method == 'POST':
+        form = FeedbackForm(request.POST)
+        if form.is_valid():
+            form.save()
+            messages.success(request, 'Спасибо за ваше сообщение! Мы свяжемся с вами в ближайшее время.')
+            return redirect('home')
+    else:
+        form = FeedbackForm()
+
+    return render(request, 'booking/feedback.html', {'form': form})
