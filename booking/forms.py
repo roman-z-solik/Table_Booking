@@ -2,6 +2,8 @@ from django import forms
 from .models import Booking, Table
 from datetime import date, timedelta
 from .models import Feedback
+from django.conf import settings
+from datetime import datetime
 
 
 class BookingForm(forms.ModelForm):
@@ -45,7 +47,13 @@ class BookingForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["table"].queryset = Table.objects.filter(is_active=True)
         self.fields["table"].widget.attrs.update({"class": "form-control"})
-        self.fields["date"].initial = date.today() + timedelta(days=1)
+        today = date.today()
+        self.fields['date'].initial = today.strftime('%Y-%m-%d')
+        now = datetime.now()
+        next_hour = (now + timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+        self.fields['start_time'].initial = next_hour.time()
+        self.fields['start_time'].help_text = f'Ресторан работает с {settings.OPEN_TIME} до {settings.CLOSE_TIME}'
+        self.fields['duration_hours'].help_text = f'Максимальное время бронирования: {settings.MAX_BOOKING_HOURS} часов'
 
 
 class FeedbackForm(forms.ModelForm):

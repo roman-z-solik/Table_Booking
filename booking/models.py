@@ -84,6 +84,18 @@ class Booking(models.Model):
         if self.duration_hours < 1:
             errors["duration_hours"] = "Минимум 1 час"
 
+        start_datetime = datetime.combine(self.date, self.start_time)
+        end_datetime = start_datetime + timedelta(hours=self.duration_hours)
+
+        open_time = datetime.strptime(settings.OPEN_TIME, '%H:%M').time()
+        close_time = datetime.strptime(settings.CLOSE_TIME, '%H:%M').time()
+
+        if self.start_time < open_time:
+            errors['start_time'] = f'Ресторан открывается в {settings.OPEN_TIME}'
+
+        if end_datetime.time() > close_time:
+            errors['duration_hours'] = f'Ресторан закрывается в {settings.CLOSE_TIME}'
+
         if errors:
             raise ValidationError(errors)
 
