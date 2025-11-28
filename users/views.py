@@ -2,13 +2,13 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomUserChangeForm
 from booking.utils import send_registration_email
 
 
 def register(request):
     """Регистрация нового пользователя."""
-    if request.method == 'POST':
+    if request.method == "POST":
         form = CustomUserCreationForm(request.POST)
         if form.is_valid():
             user = form.save()
@@ -16,44 +16,70 @@ def register(request):
 
             try:
                 send_registration_email(
-                    user,
-                    'Добро пожаловать в наш ресторан!',
-                    'emails/registration.html'
+                    user, "Добро пожаловать в наш ресторан!", "emails/registration.html"
                 )
             except Exception as e:
                 print(f"Ошибка отправки email: {e}")
 
-            messages.success(request, 'Регистрация прошла успешно!')
-            return redirect('home')
+            messages.success(request, "Регистрация прошла успешно!")
+            return redirect("home")
     else:
         form = CustomUserCreationForm()
-    return render(request, 'users/register.html', {'form': form})
+    return render(request, "users/register.html", {"form": form})
 
 
 def user_login(request):
     """Вход пользователя."""
-    if request.method == 'POST':
+    if request.method == "POST":
         form = CustomAuthenticationForm(request, data=request.POST)
         if form.is_valid():
-            email = form.cleaned_data.get('username')
-            password = form.cleaned_data.get('password')
+            email = form.cleaned_data.get("username")
+            password = form.cleaned_data.get("password")
             user = authenticate(request, email=email, password=password)
             if user is not None:
                 login(request, user)
-                messages.success(request, f'Добро пожаловать, {user.first_name}!')
-                return redirect('home')
+                messages.success(request, f"Добро пожаловать, {user.first_name}!")
+                return redirect("home")
     else:
         form = CustomAuthenticationForm()
-    return render(request, 'users/login.html', {'form': form})
+    return render(request, "users/login.html", {"form": form})
+
 
 @login_required
 def user_logout(request):
     """Выход пользователя."""
     logout(request)
-    messages.info(request, 'Вы успешно вышли из системы.')
-    return redirect('home')
+    messages.info(request, "Вы успешно вышли из системы.")
+    return redirect("home")
+
 
 @login_required
 def profile(request):
     """Профиль пользователя."""
-    return render(request, 'users/profile.html', {'user': request.user})
+    return render(request, "users/profile.html", {"user": request.user})
+
+
+@login_required
+def profile_edit(request):
+    """Редактирование профиля пользователя."""
+    if request.method == "POST":
+        form = CustomUserChangeForm(request.POST, instance=request.user)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Профиль успешно обновлен!")
+            return redirect("profile")
+    else:
+        form = CustomUserChangeForm(instance=request.user)
+
+    return render(request, "users/profile_edit.html", {"form": form})
+
+
+@login_required
+def profile_delete(request):
+    """Удаление аккаунта пользователя."""
+    if request.method == "POST":
+        request.user.delete()
+        messages.success(request, "Ваш аккаунт был удален.")
+        return redirect("home")
+
+    return render(request, "users/profile_delete.html")

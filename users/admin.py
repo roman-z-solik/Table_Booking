@@ -7,8 +7,8 @@ from .models import CustomUser
 class CustomUserAdmin(UserAdmin):
     """Админ-панель для кастомной модели пользователя."""
 
-    list_display = ('email', 'username', 'phone', 'email_verified', 'is_staff')
-    list_filter = ('email_verified', 'is_staff', 'is_superuser')
+    list_display = ("email", "username", "phone", "email_verified", "is_staff")
+    list_filter = ("email_verified", "is_staff", "is_superuser")
     fieldsets = UserAdmin.fieldsets + (
-        ('Дополнительная информация', {'fields': ('phone', 'email_verified')}),
+        ("Дополнительная информация", {"fields": ("phone", "email_verified")}),
     )
