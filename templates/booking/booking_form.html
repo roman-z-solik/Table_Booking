@@ -24,7 +24,16 @@
                         {% endif %}
                     </div>
                     {% endfor %}
-                    <button type="submit" class="btn btn-primary">Забронировать</button>
+
+                    {% if form.table.value %}
+                    <div class="alert alert-info mt-3">
+                        <strong>Информация о столике:</strong><br>
+                        После заполнения формы система проверит доступность выбранного столика.
+                        Если столик занят на указанное время, вы получите сообщение об ошибке.
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn btn-primary">Проверить и забронировать</button>
                     <a href="{% url 'booking_list' %}" class="btn btn-secondary">Отмена</a>
                 </form>
             </div>

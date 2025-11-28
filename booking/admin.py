@@ -33,6 +33,6 @@ class BookingAdmin(admin.ModelAdmin):
 class FeedbackAdmin(admin.ModelAdmin):
     """Админ-панель для управления отзывами."""
 
-    list_display = ("name", "email", "phone", "created_at")
+    list_display = ("name", "email", "created_at")
     search_fields = ("name", "email", "message")
     date_hierarchy = "created_at"

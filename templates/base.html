@@ -20,16 +20,15 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'about' %}">О ресторане</a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link" href="{% url 'feedback' %}">Обратная связь</a>
-                    </li>
-                    </li>
                     {% if user.is_authenticated %}
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'booking_create' %}">Бронирование</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'booking_list' %}">Мои бронирования</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link" href="{% url 'feedback' %}">Обратная связь</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{% url 'profile' %}">Личный кабинет</a>

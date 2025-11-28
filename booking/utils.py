@@ -6,17 +6,14 @@ from django.conf import settings
 
 def send_booking_email(user, booking, subject, template):
     """Отправка email о бронировании."""
-    html_message = render_to_string(
-        template,
-        {
-            "user": user,
-            "booking": booking,
-            "restaurant_name": settings.RESTAURANT_NAME,
-            "contact_phone": settings.CONTACT_PHONE,
-            "contact_email": settings.CONTACT_EMAIL,
-            "address": settings.ADDRESS,
-        },
-    )
+    html_message = render_to_string(template, {
+        'user': user,
+        'booking': booking,
+        'restaurant_name': settings.RESTAURANT_NAME,
+        'contact_phone': settings.CONTACT_PHONE,
+        'contact_email': settings.CONTACT_EMAIL,
+        'address': settings.ADDRESS,
+    })
     plain_message = strip_tags(html_message)
 
     send_mail(
@@ -31,16 +28,13 @@ def send_booking_email(user, booking, subject, template):
 
 def send_registration_email(user, subject, template):
     """Отправка email при регистрации."""
-    html_message = render_to_string(
-        template,
-        {
-            "user": user,
-            "restaurant_name": settings.RESTAURANT_NAME,
-            "contact_phone": settings.CONTACT_PHONE,
-            "contact_email": settings.CONTACT_EMAIL,
-            "address": settings.ADDRESS,
-        },
-    )
+    html_message = render_to_string(template, {
+        'user': user,
+        'restaurant_name': settings.RESTAURANT_NAME,
+        'contact_phone': settings.CONTACT_PHONE,
+        'contact_email': settings.CONTACT_EMAIL,
+        'address': settings.ADDRESS,
+    })
     plain_message = strip_tags(html_message)
 
     send_mail(

@@ -2,8 +2,10 @@ from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout, authenticate
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from .forms import CustomUserCreationForm, CustomAuthenticationForm, CustomUserChangeForm
+from .forms import CustomUserCreationForm, CustomAuthenticationForm
+from .forms import CustomUserChangeForm
 from booking.utils import send_registration_email
+from django.conf import settings
 
 
 def register(request):
@@ -16,12 +18,16 @@ def register(request):
 
             try:
                 send_registration_email(
-                    user, "Добро пожаловать в наш ресторан!", "emails/registration.html"
+                    user,
+                    f"Добро пожаловать в {settings.RESTAURANT_NAME}!",
+                    "emails/registration.html",
                 )
+                messages.success(request, "Вы зарегистрированы. Проверьте Вашу почту.")
             except Exception as e:
-                print(f"Ошибка отправки email: {e}")
+                messages.warning(
+                    request, f"Ваша регистрация прошла, но почта недоступна: {e}"
+                )
 
-            messages.success(request, "Регистрация прошла успешно!")
             return redirect("home")
     else:
         form = CustomUserCreationForm()
@@ -40,8 +46,14 @@ def user_login(request):
                 login(request, user)
                 messages.success(request, f"Добро пожаловать, {user.first_name}!")
                 return redirect("home")
+            else:
+                messages.error(request, "Неверный email или пароль.")
+        else:
+            for error in form.errors.values():
+                messages.error(request, error)
     else:
         form = CustomAuthenticationForm()
+
     return render(request, "users/login.html", {"form": form})
 
 
@@ -78,7 +90,9 @@ def profile_edit(request):
 def profile_delete(request):
     """Удаление аккаунта пользователя."""
     if request.method == "POST":
-        request.user.delete()
+        user = request.user
+        logout(request)
+        user.delete()
         messages.success(request, "Ваш аккаунт был удален.")
         return redirect("home")
 

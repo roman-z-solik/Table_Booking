@@ -101,6 +101,6 @@ def feedback(request):
             )
             return redirect("home")
     else:
-        form = FeedbackForm()
+        form = FeedbackForm(user=request.user)
 
     return render(request, "booking/feedback.html", {"form": form})
