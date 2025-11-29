@@ -1,23 +1,37 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.utils import timezone
 from .models import Booking, Table
 from .forms import BookingForm, FeedbackForm
 from .utils import send_booking_email
+from datetime import datetime, timedelta
 
 
 def home(request):
-    """Главная страница сайта."""
-    return render(request, "booking/home.html")
+    tables = Table.objects.filter(is_active=True)
+
+    table_status = []
+    for table in tables:
+        today = timezone.now().date()
+        busy_times = table.get_busy_times(today)
+
+        table_status.append(
+            {
+                "table": table,
+                "busy_times": busy_times,
+                "is_available_today": len(busy_times) == 0,
+            }
+        )
+
+    return render(request, "booking/home.html", {"table_status": table_status})
 
 
 def about(request):
-    """Страница о ресторане."""
     return render(request, "booking/about.html")
 
 
 def feedback(request):
-    """Форма обратной связи."""
     if request.method == "POST":
         form = FeedbackForm(request.POST, user=request.user)
         if form.is_valid():
@@ -35,15 +49,20 @@ def feedback(request):
 
 @login_required
 def booking_create(request):
-    """Создание нового бронирования."""
     if request.method == "POST":
         form = BookingForm(request.POST)
         if form.is_valid():
             booking = form.save(commit=False)
             booking.user = request.user
+            booking.status = "active"
+
+            duration_hours = form.cleaned_data["duration_hours"]
+            start_datetime = datetime.combine(booking.date, booking.start_time)
+            end_datetime = start_datetime + timedelta(hours=duration_hours)
+            booking.end_time = end_datetime.time()
 
             if not booking.table.is_available(
-                booking.date, booking.start_time, booking.duration_hours
+                booking.date, booking.start_time, duration_hours
             ):
                 busy_times = booking.table.get_busy_times(booking.date)
                 messages.error(
@@ -97,7 +116,6 @@ def booking_create(request):
 
 @login_required
 def booking_list(request):
-    """Список бронирований пользователя."""
     bookings = Booking.objects.filter(user=request.user).order_by(
         "-date", "-start_time"
     )
@@ -106,7 +124,6 @@ def booking_list(request):
 
 @login_required
 def booking_cancel(request, booking_id):
-    """Отмена бронирования."""
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
     if booking.status == "active":
         booking.status = "cancelled"

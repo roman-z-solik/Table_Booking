@@ -29,9 +29,11 @@
                         <td>№{{ booking.table.number }} ({{ booking.table.get_capacity_display }})</td>
                         <td>{{ booking.guests_count }}</td>
                         <td>
-                            <span class="badge {% if booking.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
-                                {{ booking.get_status_display }}
-                            </span>
+                            {% if booking.status == 'active' %}
+                                <span class="badge bg-success">Активно</span>
+                            {% elif booking.status == 'cancelled' %}
+                                <span class="badge bg-secondary">Отменено</span>
+                            {% endif %}
                         </td>
                         <td>
                             {% if booking.status == 'active' %}

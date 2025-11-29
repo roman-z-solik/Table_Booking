@@ -1,20 +1,51 @@
 from django.contrib import admin
+from django.utils.html import format_html
 from .models import Table, Booking, Feedback
 
 
 @admin.register(Table)
 class TableAdmin(admin.ModelAdmin):
-    """Админ-панель для управления столиками."""
-
-    list_display = ("number", "capacity", "is_vip", "is_active")
+    list_display = ("number", "capacity", "is_vip", "is_active", "image_preview")
     list_filter = ("is_vip", "is_active", "capacity")
     search_fields = ("number", "description")
+    readonly_fields = ("image_preview_large",)
+
+    fieldsets = (
+        (
+            "Основная информация",
+            {"fields": ("number", "capacity", "is_vip", "is_active", "description")},
+        ),
+        (
+            "Изображение столика",
+            {
+                "fields": ("image", "image_preview_large"),
+            },
+        ),
+    )
+
+    def image_preview(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 50px; max-width: 50px;" />',
+                obj.image.url,
+            )
+        return "—"
+
+    image_preview.short_description = "Фото"
+
+    def image_preview_large(self, obj):
+        if obj.image:
+            return format_html(
+                '<img src="{}" style="max-height: 300px; max-width: 400px;" />',
+                obj.image.url,
+            )
+        return "Нет изображения"
+
+    image_preview_large.short_description = "Превью"
 
 
 @admin.register(Booking)
 class BookingAdmin(admin.ModelAdmin):
-    """Админ-панель для управления бронированиями."""
-
     list_display = (
         "date",
         "start_time",
@@ -31,8 +62,6 @@ class BookingAdmin(admin.ModelAdmin):
 
 @admin.register(Feedback)
 class FeedbackAdmin(admin.ModelAdmin):
-    """Админ-панель для управления отзывами."""
-
     list_display = ("name", "email", "created_at")
     search_fields = ("name", "email", "message")
     date_hierarchy = "created_at"
