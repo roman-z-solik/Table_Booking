@@ -8,6 +8,23 @@
                 <h4 class="mb-0">Бронирование столика</h4>
             </div>
             <div class="card-body">
+
+                {% if form.errors %}
+                <div class="alert alert-danger">
+                    <strong>Ошибки в форме:</strong>
+                    <ul>
+                        {% for field in form %}
+                            {% for error in field.errors %}
+                                <li>{{ field.label }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        {% for error in form.non_field_errors %}
+                            <li>{{ error }}</li>
+                        {% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+
                 <form method="post" id="booking-form">
                     {% csrf_token %}
 
@@ -16,6 +33,9 @@
                             <div class="mb-3">
                                 <label for="{{ form.table.id_for_label }}" class="form-label">{{ form.table.label }}</label>
                                 {{ form.table }}
+                                {% if form.selected_table %}
+                                <div class="form-text">Вместимость столика: {{ form.selected_table.capacity }} человек</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-6">
@@ -55,9 +75,6 @@
                             <div class="mb-3">
                                 <label for="{{ form.duration_hours.id_for_label }}" class="form-label">{{ form.duration_hours.label }}</label>
                                 {{ form.duration_hours }}
-                                {% if form.duration_hours.help_text %}
-                                <div class="form-text">{{ form.duration_hours.help_text }}</div>
-                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -65,6 +82,9 @@
                     <div class="mb-3">
                         <label for="{{ form.guests_count.id_for_label }}" class="form-label">{{ form.guests_count.label }}</label>
                         {{ form.guests_count }}
+                        {% if form.selected_table %}
+                        <div class="form-text" id="capacity-info">Максимальная вместимость: {{ form.selected_table.capacity }} человек</div>
+                        {% endif %}
                     </div>
 
                     <div class="mb-3">
@@ -84,9 +104,46 @@
 document.addEventListener('DOMContentLoaded', function() {
     const tableSelect = document.querySelector('#id_table');
     const dateInput = document.querySelector('#id_date');
-    const form = document.querySelector('#booking-form');
+    const guestsSelect = document.querySelector('#id_guests_count');
+    const capacityInfo = document.querySelector('#capacity-info');
 
-    function updateTableInfo() {
+    function updateGuestsCount(tableId) {
+        if (!tableId) return;
+
+        fetch(`/booking/tables/${tableId}/capacity/`)
+            .then(response => response.json())
+            .then(data => {
+                const currentValue = guestsSelect.value;
+                guestsSelect.innerHTML = '';
+
+                for (let i = 1; i <= data.capacity; i++) {
+                    const option = document.createElement('option');
+                    option.value = i;
+
+                    let text = i + ' ';
+                    if (i === 1) text += 'человек';
+                    else if (i < 5) text += 'человека';
+                    else text += 'человек';
+
+                    option.textContent = text;
+
+                    if (i === parseInt(currentValue) || (i === 1 && !currentValue)) {
+                        option.selected = true;
+                    }
+
+                    guestsSelect.appendChild(option);
+                }
+
+                if (capacityInfo) {
+                    capacityInfo.textContent = `Максимальная вместимость: ${data.capacity} человек`;
+                }
+            })
+            .catch(error => {
+                console.error('Ошибка загрузки вместимости:', error);
+            });
+    }
+
+    function updateForm() {
         if (tableSelect.value && dateInput.value) {
             const url = new URL(window.location.href);
             url.searchParams.set('table_id', tableSelect.value);
@@ -95,8 +152,16 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    tableSelect.addEventListener('change', updateTableInfo);
-    dateInput.addEventListener('change', updateTableInfo);
+    tableSelect.addEventListener('change', function() {
+        updateGuestsCount(this.value);
+        updateForm();
+    });
+
+    dateInput.addEventListener('change', updateForm);
+
+    if (tableSelect.value) {
+        updateGuestsCount(tableSelect.value);
+    }
 });
 </script>
 {% endblock %}

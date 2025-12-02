@@ -11,4 +11,5 @@ def restaurant_info(request):
         "address": settings.ADDRESS,
         "open_time": settings.OPEN_TIME,
         "close_time": settings.CLOSE_TIME,
+        "booking_rules": getattr(settings, "BOOKING_RULES", []),
     }

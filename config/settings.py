@@ -95,26 +95,27 @@ AUTH_USER_MODEL = "users.CustomUser"
 
 EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
 EMAIL_HOST = os.getenv("EMAIL_HOST")
-EMAIL_PORT = int(os.getenv("EMAIL_PORT", 587))
+EMAIL_PORT = int(os.getenv("EMAIL_PORT"))
 EMAIL_USE_TLS = os.getenv("EMAIL_USE_TLS", "True").lower() == "true"
 EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD")
-DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", EMAIL_HOST_USER)
-SERVER_EMAIL = os.getenv("SERVER_EMAIL", EMAIL_HOST_USER)
+DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL")
+SERVER_EMAIL = os.getenv("SERVER_EMAIL")
 
 LOGIN_URL = "/users/login/"
 LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
-RESTAURANT_NAME = os.getenv("RESTAURANT_NAME", "Наш Ресторан")
-RESTAURANT_DESCRIPTION = os.getenv("RESTAURANT_DESCRIPTION", "")
+RESTAURANT_NAME = os.getenv("RESTAURANT_NAME")
+RESTAURANT_DESCRIPTION = os.getenv("RESTAURANT_DESCRIPTION")
 CONTACT_PHONE = os.getenv("CONTACT_PHONE")
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL")
 ADDRESS = os.getenv("ADDRESS")
-OPEN_TIME = os.getenv("OPEN_TIME", "12:00")
-CLOSE_TIME = os.getenv("CLOSE_TIME", "23:00")
-MIN_BOOKING_HOURS = int(os.getenv("MIN_BOOKING_HOURS", 1))
-MAX_BOOKING_HOURS = int(os.getenv("MAX_BOOKING_HOURS", 4))
+OPEN_TIME = os.getenv("OPEN_TIME")
+CLOSE_TIME = os.getenv("CLOSE_TIME")
+MIN_BOOKING_HOURS = int(os.getenv("MIN_BOOKING_HOURS"))
+MAX_BOOKING_HOURS = int(os.getenv("MAX_BOOKING_HOURS"))
+MAX_TABLE_CAPACITY = int(os.getenv("MAX_TABLE_CAPACITY"))
 
 TABLE_CAPACITIES = []
 capacity_choices = os.getenv("TABLE_CAPACITIES")
@@ -130,3 +131,7 @@ for choice in status_choices.split(","):
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
+
+# Restaurant Rules
+BOOKING_RULES = os.getenv("BOOKING_RULES").split("|")
+MAX_BOOKING_DAYS_AHEAD = int(os.getenv("MAX_BOOKING_DAYS_AHEAD"))
