@@ -107,6 +107,7 @@ LOGIN_REDIRECT_URL = "/"
 LOGOUT_REDIRECT_URL = "/"
 
 RESTAURANT_NAME = os.getenv("RESTAURANT_NAME")
+RESTAURANT_HEAD_NAME = os.getenv("RESTAURANT_HEAD_NAME")
 RESTAURANT_DESCRIPTION = os.getenv("RESTAURANT_DESCRIPTION")
 CONTACT_PHONE = os.getenv("CONTACT_PHONE")
 CONTACT_EMAIL = os.getenv("CONTACT_EMAIL")
@@ -132,6 +133,11 @@ for choice in status_choices.split(","):
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
-# Restaurant Rules
 BOOKING_RULES = os.getenv("BOOKING_RULES").split("|")
 MAX_BOOKING_DAYS_AHEAD = int(os.getenv("MAX_BOOKING_DAYS_AHEAD"))
+
+# Дополнительный (необязательный) функционал - сохранение и выгрузка данных для тестирования
+DATA_DIR = BASE_DIR / "data"
+DATA_DIR.mkdir(exist_ok=True)
+BOOKING_DATA_FILE = DATA_DIR / "booking_data.json"
+BOOKING_MEDIA_BACKUP = DATA_DIR / "media_backup"

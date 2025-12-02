@@ -1,13 +1,14 @@
 from django import forms
-from django.conf import settings
-from .models import Feedback, Table, Booking
+
+from config import settings
+from .models import Feedback
+from .models import Table
+from .models import Booking
 from datetime import date, timedelta
 from datetime import datetime
 
 
 class BookingForm(forms.ModelForm):
-    """Форма бронирования столика"""
-
     duration_hours = forms.ChoiceField(
         choices=[(1, "1 час"), (2, "2 часа"), (3, "3 часа"), (4, "4 часа")],
         label="Продолжительность",
@@ -48,18 +49,18 @@ class BookingForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Инициализация формы"""
         super().__init__(*args, **kwargs)
-
-        max_capacity = settings.MAX_TABLE_CAPACITY
 
         self.fields["table"].queryset = Table.objects.filter(is_active=True)
 
-        table_id = self.initial.get("table")
-        if not table_id and hasattr(self, "data") and self.data.get("table"):
-            table_id = self.data.get("table")
+        table_id = None
 
-        capacity = max_capacity
+        if hasattr(self, 'data') and self.data.get('table'):
+            table_id = self.data.get('table')
+        elif self.initial.get('table'):
+            table_id = self.initial.get('table')
+
+        capacity = settings.MAX_TABLE_CAPACITY
         selected_table = None
 
         if table_id:
@@ -71,7 +72,7 @@ class BookingForm(forms.ModelForm):
                 pass
 
         self.fields["guests_count"].choices = [
-            (i, f'{i} {"человек" if i == 1 else "человека" if i < 5 else "человек"}')
+            (i, f'{i} чел.')
             for i in range(1, capacity + 1)
         ]
 
@@ -91,50 +92,134 @@ class BookingForm(forms.ModelForm):
         )
 
     def clean(self):
-        """Валидация времени бронирования"""
         cleaned_data = super().clean()
 
-        start_time = cleaned_data.get("start_time")
-        duration_hours = cleaned_data.get("duration_hours")
-        date_obj = cleaned_data.get("date")
+        table = cleaned_data.get('table')
+        guests_count = cleaned_data.get('guests_count')
 
-        if start_time and duration_hours and date_obj:
-            open_time = datetime.strptime(settings.OPEN_TIME, "%H:%M").time()
-            close_time = datetime.strptime(settings.CLOSE_TIME, "%H:%M").time()
-
-            if start_time < open_time:
+        if table and guests_count:
+            if guests_count > table.capacity:
                 self.add_error(
-                    "start_time", f"Ресторан открывается в {settings.OPEN_TIME}"
+                    'guests_count',
+                    f'Этот столик вмещает максимум {table.capacity} гостей'
                 )
-
-            end_datetime = datetime.combine(date_obj, start_time) + timedelta(
-                hours=duration_hours
-            )
-            end_time = end_datetime.time()
-
-            if end_time < start_time:
-                self.add_error(
-                    "duration_hours",
-                    f"Нельзя бронировать столик после {settings.CLOSE_TIME}",
-                )
-
-            elif end_time > close_time:
-                self.add_error(
-                    "duration_hours",
-                    f"Бронирование должно завершиться до {settings.CLOSE_TIME}",
-                )
-
-        return cleaned_data
 
     def clean_guests_count(self):
-        """Преобразование количества гостей"""
         guests_count = self.cleaned_data.get("guests_count")
         if guests_count:
             return int(guests_count)
         return guests_count
 
     def clean_duration_hours(self):
-        """Преобразование длительности"""
+        duration_hours = self.cleaned_data.get("duration_hours")
+        if duration_hours:
+            return int(duration_hours)
+        return duration_hours
+
+
+class BookingEditForm(forms.ModelForm):
+    duration_hours = forms.ChoiceField(
+        choices=[(1, "1 час"), (2, "2 часа"), (3, "3 часа"), (4, "4 часа")],
+        label="Продолжительность",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    guests_count = forms.ChoiceField(
+        choices=[],
+        label="Количество гостей",
+        widget=forms.Select(attrs={"class": "form-control"}),
+    )
+
+    class Meta:
+        model = Booking
+        fields = [
+            "table",
+            "date",
+            "start_time",
+            "duration_hours",
+            "guests_count",
+            "special_requests",
+        ]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "start_time": forms.TimeInput(
+                attrs={"type": "time", "class": "form-control"}
+            ),
+            "special_requests": forms.Textarea(
+                attrs={"class": "form-control", "rows": 3}
+            ),
+            "table": forms.Select(attrs={"class": "form-control", "id": "id_table"}),
+        }
+        labels = {
+            "table": "Столик",
+            "date": "Дата",
+            "start_time": "Время начала",
+            "special_requests": "Специальные пожелания",
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        self.fields["table"].queryset = Table.objects.filter(is_active=True)
+
+        table_id = None
+
+        if hasattr(self, 'data') and self.data.get('table'):
+            table_id = self.data.get('table')
+        elif self.initial.get('table'):
+            table_id = self.initial.get('table')
+        elif self.instance and self.instance.table:
+            table_id = self.instance.table.id
+
+        capacity = settings.MAX_TABLE_CAPACITY
+        selected_table = None
+
+        if table_id:
+            try:
+                selected_table = Table.objects.get(id=table_id)
+                capacity = selected_table.capacity
+            except (Table.DoesNotExist, ValueError):
+                pass
+
+        choices = [
+            (i, f'{i} чел.')
+            for i in range(1, capacity + 1)
+        ]
+        self.fields["guests_count"].choices = choices
+
+        if self.instance and self.instance.guests_count:
+            current_guests = self.instance.guests_count
+            if current_guests <= capacity:
+                self.initial["guests_count"] = current_guests
+            else:
+                self.initial["guests_count"] = capacity
+
+        self.selected_table = selected_table
+
+        self.fields["start_time"].help_text = (
+            f"Ресторан работает с {settings.OPEN_TIME} до {settings.CLOSE_TIME}"
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+
+        table = cleaned_data.get('table')
+        guests_count = cleaned_data.get('guests_count')
+
+        if table and guests_count:
+            if guests_count > table.capacity:
+                self.add_error(
+                    'guests_count',
+                    f'Этот столик вмещает максимум {table.capacity} гостей'
+                )
+
+    def clean_guests_count(self):
+        guests_count = self.cleaned_data.get("guests_count")
+        if guests_count:
+            return int(guests_count)
+        return guests_count
+
+    def clean_duration_hours(self):
         duration_hours = self.cleaned_data.get("duration_hours")
         if duration_hours:
             return int(duration_hours)
@@ -142,7 +227,7 @@ class BookingForm(forms.ModelForm):
 
 
 class FeedbackForm(forms.ModelForm):
-    """Форма обратной связи"""
+    """Форма обратной связи."""
 
     class Meta:
         model = Feedback
@@ -163,7 +248,7 @@ class FeedbackForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Инициализация формы"""
+        """Инициализация формы обратной связи."""
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         if self.user and self.user.is_authenticated:

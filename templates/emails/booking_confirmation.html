@@ -2,13 +2,13 @@
 <html>
 <head>
     <meta charset="utf-8">
-    <title>Подтверждение бронирования - {{ restaurant_name }}</title>
+    <title>Столик забронирован - {{ restaurant_name }}</title>
 </head>
 <body>
-    <h2>Бронирование подтверждено!</h2>
-    <p>Уважаемый(ая) {{ user.first_name }},</p>
+    <h2>Столик забронирован!</h2>
+    <p>Ув. {{ user.first_name }},</p>
     <p>Ваш столик в {{ restaurant_name }} успешно забронирован.</p>
-    <p><strong>Детали бронирования:</strong></p>
+    <p><strong>Ваше бронирование:</strong></p>
     <ul>
         <li>Столик: №{{ booking.table.number }}</li>
         <li>Дата: {{ booking.date }}</li>

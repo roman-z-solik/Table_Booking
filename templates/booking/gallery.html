@@ -2,16 +2,16 @@
 
 {% block content %}
 <div class="container mt-4">
+    <h1 class="text-center mb-4">{{ page.title }}</h1>
+
+    {% if page.subtitle %}
+    <p class="lead text-center mb-5">{{ page.subtitle }}</p>
+    {% endif %}
+
     {% if page.main_image %}
     <div class="text-center mb-4">
         <img src="{{ page.main_image.url }}" alt="{{ page.title }}" class="img-fluid rounded" style="max-height: 500px;">
     </div>
-    {% endif %}
-    
-    <h1 class="text-center mb-4">{{ page.title }}</h1>
-    
-    {% if page.subtitle %}
-    <p class="lead text-center mb-5">{{ page.subtitle }}</p>
     {% endif %}
     
     {% if page.content %}
@@ -36,9 +36,6 @@
                     {% if image.description %}
                     <p class="card-text">{{ image.description }}</p>
                     {% endif %}
-                </div>
-                <div class="card-footer bg-white border-0">
-                    <small class="text-muted">Добавлено {{ image.uploaded_at|date:"d.m.Y" }}</small>
                 </div>
             </div>
         </div>

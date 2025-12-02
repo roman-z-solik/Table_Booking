@@ -5,6 +5,7 @@ def restaurant_info(request):
     """Добавляет информацию о ресторане в контекст шаблонов."""
     return {
         "restaurant_name": settings.RESTAURANT_NAME,
+        "restaurant_head_name": settings.RESTAURANT_HEAD_NAME,
         "restaurant_description": settings.RESTAURANT_DESCRIPTION,
         "contact_phone": settings.CONTACT_PHONE,
         "contact_email": settings.CONTACT_EMAIL,

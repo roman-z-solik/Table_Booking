@@ -4,18 +4,28 @@
 {% block title %}Главная - {{ restaurant_name }}{% endblock %}
 
 {% block content %}
-<div class="row">
-    <div class="col-md-8 mx-auto text-center">
-        <h1>Добро пожаловать в {{ restaurant_name }}</h1>
-        <p class="lead">{{ restaurant_description }}</p>
+{% if not user.is_authenticated %}
+<div class="bg-light py-5 mb-5 rounded">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h2 class="display-6 mb-4">Забронируйте столик онлайн</h2>
+                <p class="lead mb-4">Быстрое бронирование, выбор столика, удобное управление</p>
+                <p class="mb-1 small text-secondary">Для бронирования столика надо зарегистрироваться.</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{% url 'register' %}" class="btn btn btn-outline-primary px-4 me-md-2">Регистрация</a>
+                    <a href="{% url 'login' %}" class="btn btn btn-outline-success px-4">Войти в аккаунт</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
 
-        {% if user.is_authenticated %}
-        <a href="{% url 'booking_create' %}" class="btn btn-primary btn-lg me-2">Забронировать столик</a>
-        <a href="{% url 'booking_list' %}" class="btn btn-outline-primary btn-lg">Мои бронирования</a>
-        {% else %}
-        <a href="{% url 'register' %}" class="btn btn-primary btn-lg me-2">Зарегистрироваться</a>
-        <a href="{% url 'login' %}" class="btn btn-outline-primary btn-lg">Войти</a>
-        {% endif %}
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center">{{ restaurant_name }}</h1>
+        <p class="lead text-center">{{ restaurant_description }}</p>
     </div>
 </div>
 

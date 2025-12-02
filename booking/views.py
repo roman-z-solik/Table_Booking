@@ -6,12 +6,12 @@ from django.http import JsonResponse
 from django.core.paginator import Paginator
 from django.conf import settings
 from .models import Booking, Table, Page
-from .forms import BookingForm, FeedbackForm
+from .forms import BookingForm, FeedbackForm, BookingEditForm
+from .utils import send_booking_email
 from datetime import datetime, timedelta
 
 
 def home(request):
-    """Главная страница со столиками"""
     tables = Table.objects.filter(is_active=True)
 
     table_status = []
@@ -41,7 +41,6 @@ def home(request):
 
 
 def page_detail(request, page_type):
-    """Отображение страницы по типу"""
     try:
         page = Page.objects.get(page_type=page_type, is_active=True)
 
@@ -71,7 +70,6 @@ def page_detail(request, page_type):
 
 
 def feedback(request):
-    """Обработка обратной связи"""
     if request.method == "POST":
         form = FeedbackForm(request.POST, user=request.user)
         if form.is_valid():
@@ -95,7 +93,6 @@ def feedback(request):
 
 @login_required
 def booking_create(request):
-    """Создание бронирования"""
     if request.method == "POST":
         form = BookingForm(request.POST)
         if form.is_valid():
@@ -117,18 +114,29 @@ def booking_create(request):
                 )
                 return render(request, "booking/booking_form.html", {"form": form})
 
-            booking.save()
-            messages.success(request, "Столик успешно забронирован!")
-            return redirect("booking_list")
-    else:
-        table_id = request.GET.get("table_id")
-        booking_date = request.GET.get("date")
+            try:
+                booking.save()
 
+                try:
+                    send_booking_email(
+                        request.user,
+                        booking,
+                        "Подтверждение бронирования",
+                        "emails/booking_confirmation.html",
+                    )
+                except Exception as e:
+                    print(f"Ошибка отправки email: {e}")
+
+                messages.success(request, "Столик успешно забронирован!")
+                return redirect("booking_list")
+            except Exception as e:
+                messages.error(request, f"Ошибка бронирования: {str(e)}")
+    else:
         initial_data = {}
+
+        table_id = request.GET.get("table_id")
         if table_id:
             initial_data["table"] = table_id
-        if booking_date:
-            initial_data["date"] = booking_date
 
         form = BookingForm(initial=initial_data)
 
@@ -144,13 +152,6 @@ def booking_create(request):
         except Table.DoesNotExist:
             pass
 
-    selected_table = None
-    if request.GET.get("table_id"):
-        try:
-            selected_table = Table.objects.get(id=request.GET.get("table_id"))
-        except Table.DoesNotExist:
-            selected_table = None
-
     return render(
         request,
         "booking/booking_form.html",
@@ -158,14 +159,12 @@ def booking_create(request):
             "form": form,
             "tables": tables,
             "table_info": table_info,
-            "selected_table": selected_table,
         },
     )
 
 
 @login_required
 def booking_list(request):
-    """Список бронирований пользователя"""
     bookings = Booking.objects.filter(user=request.user).order_by(
         "-date", "-start_time"
     )
@@ -182,20 +181,94 @@ def booking_list(request):
 
 
 @login_required
-def booking_cancel(request, booking_id):
-    """Отмена бронирования"""
+def booking_edit(request, booking_id):
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
     if request.method == "POST":
+        form = BookingEditForm(request.POST, instance=booking)
+        if form.is_valid():
+            old_date = booking.date
+            old_time = booking.start_time
+
+            booking = form.save(commit=False)
+
+            duration_hours = form.cleaned_data.get("duration_hours", 2)
+            start_datetime = datetime.combine(booking.date, booking.start_time)
+            end_datetime = start_datetime + timedelta(hours=duration_hours)
+            booking.end_time = end_datetime.time()
+
+            if old_date != booking.date or old_time != booking.start_time:
+                if not booking.table.is_available(
+                    booking.date, booking.start_time, duration_hours
+                ):
+                    busy_times = booking.table.get_busy_times(booking.date)
+                    messages.error(
+                        request,
+                        f'Столик занят на выбранное время. Занятое время: {", ".join(busy_times)}',
+                    )
+                    return render(
+                        request,
+                        "booking/booking_edit.html",
+                        {"form": form, "booking": booking},
+                    )
+
+            booking.save()
+
+            try:
+                send_booking_email(
+                    request.user,
+                    booking,
+                    "Изменение бронирования",
+                    "emails/booking_updated.html",
+                )
+            except Exception as e:
+                print(f"Ошибка отправки email: {e}")
+
+            messages.success(request, "Бронирование успешно изменено!")
+            return redirect("booking_list")
+    else:
+        # Если есть GET параметр table_id, используем его как initial
+        initial_data = {}
+
+        table_id = request.GET.get("table_id")
+        if table_id:
+            initial_data["table"] = table_id
+
+        form = BookingEditForm(instance=booking, initial=initial_data)
+
+    return render(
+        request,
+        "booking/booking_edit.html",
+        {
+            "form": form,
+            "booking": booking,
+        },
+    )
+
+
+@login_required
+def booking_cancel(request, booking_id):
+    booking = get_object_or_404(Booking, id=booking_id, user=request.user)
+
+    if request.method == "POST":
+        try:
+            send_booking_email(
+                request.user,
+                booking,
+                "Отмена бронирования",
+                "emails/booking_cancellation.html",
+            )
+        except Exception as e:
+            print(f"Ошибка отправки email: {e}")
+
         booking.delete()
         messages.success(request, "Бронирование отменено.")
         return redirect("booking_list")
 
-    return render(request, "booking/booking_cancel.html", {"booking": booking})
+    return render(request, "booking/booking_cancel_confirm.html", {"booking": booking})
 
 
 def get_table_capacity(request, table_id):
-    """API: получение вместимости столика"""
     try:
         table = Table.objects.get(id=table_id, is_active=True)
         return JsonResponse({"capacity": table.capacity, "table_number": table.number})
