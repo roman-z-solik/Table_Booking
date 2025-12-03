@@ -2,18 +2,21 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    ca-certificates \
-    && rm -rf /var/lib/apt/lists/* \
-    && update-ca-certificates
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
+
+RUN apt-get update \
+    && apt-get install -y gcc postgresql-client \
+    && apt-get clean
 
 COPY requirements.txt .
-
-RUN pip install --no-cache-dir --trusted-host pypi.org --trusted-host pypi.python.org --trusted-host files.pythonhosted.org -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
+
+RUN chmod +x entrypoint.sh
+
+ENTRYPOINT ["./entrypoint.sh"]
 
 EXPOSE 8000
 

@@ -227,7 +227,6 @@ def booking_edit(request, booking_id):
             messages.success(request, "Бронирование успешно изменено!")
             return redirect("booking_list")
     else:
-        # Если есть GET параметр table_id, используем его как initial
         initial_data = {}
 
         table_id = request.GET.get("table_id")

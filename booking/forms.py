@@ -55,10 +55,10 @@ class BookingForm(forms.ModelForm):
 
         table_id = None
 
-        if hasattr(self, 'data') and self.data.get('table'):
-            table_id = self.data.get('table')
-        elif self.initial.get('table'):
-            table_id = self.initial.get('table')
+        if hasattr(self, "data") and self.data.get("table"):
+            table_id = self.data.get("table")
+        elif self.initial.get("table"):
+            table_id = self.initial.get("table")
 
         capacity = settings.MAX_TABLE_CAPACITY
         selected_table = None
@@ -72,8 +72,7 @@ class BookingForm(forms.ModelForm):
                 pass
 
         self.fields["guests_count"].choices = [
-            (i, f'{i} чел.')
-            for i in range(1, capacity + 1)
+            (i, f"{i} чел.") for i in range(1, capacity + 1)
         ]
 
         self.selected_table = selected_table
@@ -94,14 +93,14 @@ class BookingForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        table = cleaned_data.get('table')
-        guests_count = cleaned_data.get('guests_count')
+        table = cleaned_data.get("table")
+        guests_count = cleaned_data.get("guests_count")
 
         if table and guests_count:
             if guests_count > table.capacity:
                 self.add_error(
-                    'guests_count',
-                    f'Этот столик вмещает максимум {table.capacity} гостей'
+                    "guests_count",
+                    f"Этот столик вмещает максимум {table.capacity} гостей",
                 )
 
     def clean_guests_count(self):
@@ -164,10 +163,10 @@ class BookingEditForm(forms.ModelForm):
 
         table_id = None
 
-        if hasattr(self, 'data') and self.data.get('table'):
-            table_id = self.data.get('table')
-        elif self.initial.get('table'):
-            table_id = self.initial.get('table')
+        if hasattr(self, "data") and self.data.get("table"):
+            table_id = self.data.get("table")
+        elif self.initial.get("table"):
+            table_id = self.initial.get("table")
         elif self.instance and self.instance.table:
             table_id = self.instance.table.id
 
@@ -181,10 +180,7 @@ class BookingEditForm(forms.ModelForm):
             except (Table.DoesNotExist, ValueError):
                 pass
 
-        choices = [
-            (i, f'{i} чел.')
-            for i in range(1, capacity + 1)
-        ]
+        choices = [(i, f"{i} чел.") for i in range(1, capacity + 1)]
         self.fields["guests_count"].choices = choices
 
         if self.instance and self.instance.guests_count:
@@ -203,14 +199,14 @@ class BookingEditForm(forms.ModelForm):
     def clean(self):
         cleaned_data = super().clean()
 
-        table = cleaned_data.get('table')
-        guests_count = cleaned_data.get('guests_count')
+        table = cleaned_data.get("table")
+        guests_count = cleaned_data.get("guests_count")
 
         if table and guests_count:
             if guests_count > table.capacity:
                 self.add_error(
-                    'guests_count',
-                    f'Этот столик вмещает максимум {table.capacity} гостей'
+                    "guests_count",
+                    f"Этот столик вмещает максимум {table.capacity} гостей",
                 )
 
     def clean_guests_count(self):
