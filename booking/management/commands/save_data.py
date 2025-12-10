@@ -1,12 +1,10 @@
-# Это дополнительный функционал, никак не связанный с работой, делал для себя, т.к.
-# часто работаю из разных мест. Только для тестирования
 import json
 import os
 import shutil
 from django.core.management.base import BaseCommand
 from django.core import serializers
 from django.conf import settings
-from booking.models import Table, Booking, Page, Feedback, RestaurantSettings
+from booking.models import Table, Booking, Page, Feedback, GalleryImage, MenuItem, TeamMember
 
 
 class Command(BaseCommand):
@@ -18,7 +16,7 @@ class Command(BaseCommand):
 
         all_data = []
 
-        for model in [Table, Booking, Page, Feedback, RestaurantSettings]:
+        for model in [Table, Booking, Page, Feedback, GalleryImage, MenuItem, TeamMember]:
             try:
                 data = serializers.serialize("json", model.objects.all())
                 all_data.append({"model": model.__name__, "data": json.loads(data)})

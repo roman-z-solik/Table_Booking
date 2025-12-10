@@ -1,11 +1,11 @@
-# Это дополнительный функционал, никак не связанный с работой, делал для себя, т.к.
-# часто работаю из разных мест. Только для тестирования
 import json
 import os
 import shutil
 from django.core.management.base import BaseCommand
 from django.core.serializers import deserialize
 from django.conf import settings
+from django.db import transaction
+from booking.models import Table, Booking, Page, Feedback, GalleryImage, MenuItem, TeamMember
 
 
 class Command(BaseCommand):
@@ -13,8 +13,8 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         if not os.path.exists("data/data.json"):
-            print("Файл data/data.json не найден")
-            print("Сначала выполните: python manage.py save_data")
+            self.stdout.write("Файл data/data.json не найден")
+            self.stdout.write("Сначала выполните: python manage.py save_data")
             return
 
         with open("data/data.json", "r", encoding="utf-8") as f:
@@ -23,20 +23,41 @@ class Command(BaseCommand):
         total_loaded = 0
         total_errors = 0
 
-        for item in data:
-            model_name = item["model"]
-            records = item["data"]
+        model_map = {
+            "Table": Table,
+            "Booking": Booking,
+            "Page": Page,
+            "Feedback": Feedback,
+            "GalleryImage": GalleryImage,
+            "MenuItem": MenuItem,
+            "TeamMember": TeamMember,
+        }
 
-            print(f"Загрузка {model_name} ({len(records)} записей)")
+        with transaction.atomic():
+            for item in data:
+                model_name = item["model"]
+                records = item["data"]
 
-            for i, record in enumerate(records, 1):
-                try:
-                    obj = list(deserialize("json", json.dumps([record])))[0]
-                    obj.save()
-                    total_loaded += 1
-                except Exception as e:
-                    total_errors += 1
-                    print(f"Ошибка записи {i}: {e}")
+                self.stdout.write(f"Загрузка {model_name} ({len(records)} записей)")
+
+                for i, record in enumerate(records, 1):
+                    try:
+                        natural_key = record.get("pk")
+                        record["pk"] = None
+
+                        obj = list(deserialize("json", json.dumps([record])))[0]
+
+                        obj.object.pk = None
+
+                        obj.save(using="default")
+                        total_loaded += 1
+
+                        if i % 100 == 0:
+                            self.stdout.write(f"  Загружено {i} записей...")
+
+                    except Exception as e:
+                        total_errors += 1
+                        self.stderr.write(f"Ошибка записи {i}: {e}")
 
         media_backup = "data/media"
         if os.path.exists(media_backup):
@@ -44,10 +65,10 @@ class Command(BaseCommand):
                 if os.path.exists(settings.MEDIA_ROOT):
                     shutil.rmtree(settings.MEDIA_ROOT)
                 shutil.copytree(media_backup, settings.MEDIA_ROOT)
-                print("Медиа файлы восстановлены")
+                self.stdout.write("Медиа файлы восстановлены")
 
-        print("")
-        print("=" * 40)
-        print(f"Загружено записей: {total_loaded}")
-        print(f"Ошибок: {total_errors}")
-        print("=" * 40)
+        self.stdout.write("")
+        self.stdout.write("=" * 40)
+        self.stdout.write(f"Загружено записей: {total_loaded}")
+        self.stdout.write(f"Ошибок: {total_errors}")
+        self.stdout.write("=" * 40)

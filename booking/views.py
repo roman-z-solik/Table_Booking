@@ -12,6 +12,7 @@ from datetime import datetime, timedelta
 
 
 def home(request):
+    """Главная страница со списком столиков"""
     tables = Table.objects.filter(is_active=True)
 
     table_status = []
@@ -41,6 +42,7 @@ def home(request):
 
 
 def page_detail(request, page_type):
+    """Детальная страница сайта"""
     try:
         page = Page.objects.get(page_type=page_type, is_active=True)
 
@@ -70,6 +72,7 @@ def page_detail(request, page_type):
 
 
 def feedback(request):
+    """Форма обратной связи"""
     if request.method == "POST":
         form = FeedbackForm(request.POST, user=request.user)
         if form.is_valid():
@@ -93,26 +96,19 @@ def feedback(request):
 
 @login_required
 def booking_create(request):
+    """Создание бронирования"""
+    table_id = request.GET.get("table_id")
+
     if request.method == "POST":
-        form = BookingForm(request.POST)
+        form = BookingForm(request.POST, table_id=table_id)
         if form.is_valid():
             booking = form.save(commit=False)
             booking.user = request.user
 
-            duration_hours = form.cleaned_data["duration_hours"]
+            duration_hours = int(form.cleaned_data["duration_hours"])
             start_datetime = datetime.combine(booking.date, booking.start_time)
             end_datetime = start_datetime + timedelta(hours=duration_hours)
             booking.end_time = end_datetime.time()
-
-            if not booking.table.is_available(
-                booking.date, booking.start_time, duration_hours
-            ):
-                busy_times = booking.table.get_busy_times(booking.date)
-                messages.error(
-                    request,
-                    f'Столик занят на выбранное время. Занятое время: {", ".join(busy_times)}',
-                )
-                return render(request, "booking/booking_form.html", {"form": form})
 
             try:
                 booking.save()
@@ -132,39 +128,21 @@ def booking_create(request):
             except Exception as e:
                 messages.error(request, f"Ошибка бронирования: {str(e)}")
     else:
-        initial_data = {}
-
-        table_id = request.GET.get("table_id")
-        if table_id:
-            initial_data["table"] = table_id
-
-        form = BookingForm(initial=initial_data)
-
-    tables = Table.objects.filter(is_active=True)
-
-    table_info = None
-    if request.GET.get("table_id") and request.GET.get("date"):
-        try:
-            table = Table.objects.get(id=request.GET.get("table_id"))
-            date_str = request.GET.get("date")
-            busy_times = table.get_busy_times(date_str)
-            table_info = {"table": table, "date": date_str, "busy_times": busy_times}
-        except Table.DoesNotExist:
-            pass
+        form = BookingForm(table_id=table_id)
 
     return render(
         request,
         "booking/booking_form.html",
         {
             "form": form,
-            "tables": tables,
-            "table_info": table_info,
+            "table_id": table_id,
         },
     )
 
 
 @login_required
 def booking_list(request):
+    """Список бронирований пользователя"""
     bookings = Booking.objects.filter(user=request.user).order_by(
         "-date", "-start_time"
     )
@@ -182,6 +160,7 @@ def booking_list(request):
 
 @login_required
 def booking_edit(request, booking_id):
+    """Редактирование бронирования"""
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
     if request.method == "POST":
@@ -192,20 +171,35 @@ def booking_edit(request, booking_id):
 
             booking = form.save(commit=False)
 
-            duration_hours = form.cleaned_data.get("duration_hours", 2)
+            duration_hours = int(form.cleaned_data.get("duration_hours", 2))
             start_datetime = datetime.combine(booking.date, booking.start_time)
             end_datetime = start_datetime + timedelta(hours=duration_hours)
             booking.end_time = end_datetime.time()
 
             if old_date != booking.date or old_time != booking.start_time:
                 if not booking.table.is_available(
-                    booking.date, booking.start_time, duration_hours
+                        booking.date, booking.start_time, duration_hours, exclude_booking_id=booking_id
                 ):
                     busy_times = booking.table.get_busy_times(booking.date)
-                    messages.error(
-                        request,
-                        f'Столик занят на выбранное время. Занятое время: {", ".join(busy_times)}',
-                    )
+
+                    busy_times_filtered = []
+                    for busy in busy_times:
+                        start_str, end_str = busy.split('-')
+                        if not (start_str == old_time.strftime('%H:%M') and
+                                end_str == booking.end_time.strftime('%H:%M')):
+                            busy_times_filtered.append(busy)
+
+                    if busy_times_filtered:
+                        messages.error(
+                            request,
+                            f'Столик занят на выбранное время. Занятое время: {", ".join(busy_times_filtered)}',
+                        )
+                    else:
+                        messages.error(
+                            request,
+                            'Выбранное время совпадает с текущим бронированием',
+                        )
+
                     return render(
                         request,
                         "booking/booking_edit.html",
@@ -227,13 +221,7 @@ def booking_edit(request, booking_id):
             messages.success(request, "Бронирование успешно изменено!")
             return redirect("booking_list")
     else:
-        initial_data = {}
-
-        table_id = request.GET.get("table_id")
-        if table_id:
-            initial_data["table"] = table_id
-
-        form = BookingEditForm(instance=booking, initial=initial_data)
+        form = BookingEditForm(instance=booking)
 
     return render(
         request,
@@ -247,6 +235,7 @@ def booking_edit(request, booking_id):
 
 @login_required
 def booking_cancel(request, booking_id):
+    """Отмена бронирования"""
     booking = get_object_or_404(Booking, id=booking_id, user=request.user)
 
     if request.method == "POST":
@@ -268,10 +257,9 @@ def booking_cancel(request, booking_id):
 
 
 def get_table_capacity(request, table_id):
+    """API для получения вместимости столика"""
     try:
         table = Table.objects.get(id=table_id, is_active=True)
         return JsonResponse({"capacity": table.capacity, "table_number": table.number})
     except Table.DoesNotExist:
-        return JsonResponse(
-            {"capacity": settings.MAX_TABLE_CAPACITY, "table_number": 0}, status=404
-        )
+        return JsonResponse({"capacity": 0, "table_number": 0}, status=404)

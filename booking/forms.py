@@ -1,24 +1,30 @@
 from django import forms
-
-from config import settings
-from .models import Feedback
-from .models import Table
-from .models import Booking
-from datetime import date, timedelta
-from datetime import datetime
+from django.core.exceptions import ValidationError
+from django.conf import settings
+from .models import Feedback, Table, Booking
+from datetime import date, timedelta, datetime
 
 
 class BookingForm(forms.ModelForm):
+    """Форма создания бронирования"""
+
     duration_hours = forms.ChoiceField(
-        choices=[(1, "1 час"), (2, "2 часа"), (3, "3 часа"), (4, "4 часа")],
+        choices=[(i, f"{i} час" if i == 1 else f"{i} часа" if i < 5 else f"{i} часов")
+                 for i in range(1, settings.MAX_BOOKING_HOURS + 1)],
         label="Продолжительность",
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_duration"}),
     )
 
     guests_count = forms.ChoiceField(
-        choices=[],
         label="Количество гостей",
-        widget=forms.Select(attrs={"class": "form-control"}),
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_guests"}),
+        choices=[(1, "1 чел.")]
+    )
+
+    start_time = forms.ChoiceField(
+        label="Время начала",
+        widget=forms.Select(attrs={"class": "form-control", "id": "id_start_time"}),
+        choices=[]
     )
 
     class Meta:
@@ -26,16 +32,13 @@ class BookingForm(forms.ModelForm):
         fields = [
             "table",
             "date",
-            "start_time",
             "duration_hours",
             "guests_count",
+            "start_time",
             "special_requests",
         ]
         widgets = {
-            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "start_time": forms.TimeInput(
-                attrs={"type": "time", "class": "form-control"}
-            ),
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control", "id": "id_date"}),
             "special_requests": forms.Textarea(
                 attrs={"class": "form-control", "rows": 3}
             ),
@@ -44,186 +47,285 @@ class BookingForm(forms.ModelForm):
         labels = {
             "table": "Столик",
             "date": "Дата",
-            "start_time": "Время начала",
             "special_requests": "Специальные пожелания",
         }
 
     def __init__(self, *args, **kwargs):
+        table_id = kwargs.pop('table_id', None)
         super().__init__(*args, **kwargs)
 
         self.fields["table"].queryset = Table.objects.filter(is_active=True)
 
-        table_id = None
-
-        if hasattr(self, "data") and self.data.get("table"):
-            table_id = self.data.get("table")
-        elif self.initial.get("table"):
-            table_id = self.initial.get("table")
-
-        capacity = settings.MAX_TABLE_CAPACITY
-        selected_table = None
-
+        table = None
         if table_id:
             try:
-                selected_table = Table.objects.get(id=table_id)
-                capacity = selected_table.capacity
-                self.initial["table"] = selected_table
+                table = Table.objects.get(id=table_id)
+                self.fields["table"].initial = table
+                self.fields["table"].disabled = True
+            except Table.DoesNotExist:
+                pass
+
+        if not table and 'table' in self.initial and self.initial['table']:
+            try:
+                table = Table.objects.get(id=self.initial['table'])
             except (Table.DoesNotExist, ValueError):
                 pass
 
-        self.fields["guests_count"].choices = [
-            (i, f"{i} чел.") for i in range(1, capacity + 1)
-        ]
+        if table:
+            guest_choices = [(i, f"{i} чел.") for i in range(1, table.capacity + 1)]
+            self.fields["guests_count"].choices = guest_choices
 
-        self.selected_table = selected_table
+        if not self.fields["date"].initial:
+            today = date.today()
+            self.fields["date"].initial = today.strftime("%Y-%m-%d")
 
-        today = date.today()
-        self.fields["date"].initial = today.strftime("%Y-%m-%d")
+        try:
+            open_time = datetime.strptime(settings.OPEN_TIME, "%H:%M").time()
+            close_time = datetime.strptime(settings.CLOSE_TIME, "%H:%M").time()
 
-        now = datetime.now()
-        next_hour = (now + timedelta(hours=1)).replace(
-            minute=0, second=0, microsecond=0
-        )
-        self.fields["start_time"].initial = next_hour.strftime("%H:%M")
+            time_choices = []
+            current_hour = open_time.hour
 
-        self.fields["start_time"].help_text = (
-            f"Ресторан работает с {settings.OPEN_TIME} до {settings.CLOSE_TIME}"
-        )
+            while current_hour < close_time.hour:
+                time_str = f"{current_hour:02d}:00"
+                time_choices.append((time_str, time_str))
+                current_hour += 1
+
+            self.fields["start_time"].choices = time_choices
+
+        except ValueError:
+            self.fields["start_time"].widget = forms.TimeInput(
+                attrs={"type": "time", "class": "form-control", "id": "id_start_time"}
+            )
+
+        self.fields[
+            "date"].help_text = f"Максимально можно забронировать на {settings.MAX_BOOKING_DAYS_AHEAD} дней вперед"
 
     def clean(self):
         cleaned_data = super().clean()
-
         table = cleaned_data.get("table")
+        date_obj = cleaned_data.get("date")
+        start_time = cleaned_data.get("start_time")
+        duration_hours = cleaned_data.get("duration_hours")
         guests_count = cleaned_data.get("guests_count")
 
+        if all([table, date_obj, start_time, duration_hours, guests_count]):
+            try:
+                duration = int(duration_hours)
+                guests = int(guests_count)
+                start_time_obj = start_time
+
+                open_time = datetime.strptime(settings.OPEN_TIME, "%H:%M").time()
+                close_time = datetime.strptime(settings.CLOSE_TIME, "%H:%M").time()
+
+                start_datetime = datetime.combine(date_obj, start_time_obj)
+                end_datetime = start_datetime + timedelta(hours=duration)
+                end_time_obj = end_datetime.time()
+
+                now = datetime.now()
+
+                if date_obj == now.date():
+                    if start_datetime < now + timedelta(hours=1):
+                        self.add_error(
+                            "start_time",
+                            "Бронь должна быть минимум на 1 час позже текущего времени"
+                        )
+
+                if start_time_obj < open_time:
+                    self.add_error(
+                        "start_time",
+                        f"Ресторан открывается в {settings.OPEN_TIME}"
+                    )
+
+                end_date = date_obj
+                if end_time_obj < start_time_obj:
+                    end_date = date_obj + timedelta(days=1)
+
+                if end_date > date_obj:
+                    self.add_error(
+                        "duration_hours",
+                        f"Бронь не может переходить на следующий день"
+                    )
+                    raise ValidationError("")
+                elif end_time_obj > close_time:
+                    self.add_error(
+                        "duration_hours",
+                        f"Бронь завершится в {end_time_obj.strftime('%H:%M')}, но ресторан закрывается в {settings.CLOSE_TIME}"
+                    )
+                    raise ValidationError("")
+
+                if table and not table.is_available(date_obj, start_time_obj, duration):
+                    busy_times = table.get_busy_times(date_obj)
+                    self.add_error(
+                        "start_time",
+                        f"Столик занят на выбранное время. Занятое время: {', '.join(busy_times)}"
+                    )
+
+                max_future_date = now.date() + timedelta(days=settings.MAX_BOOKING_DAYS_AHEAD)
+                if date_obj > max_future_date:
+                    self.add_error(
+                        "date",
+                        f"Можно бронировать максимум на {settings.MAX_BOOKING_DAYS_AHEAD} дней вперед"
+                    )
+
+            except ValueError as e:
+                self.add_error(None, f"Ошибка обработки данных: {str(e)}")
+
         if table and guests_count:
-            if guests_count > table.capacity:
-                self.add_error(
-                    "guests_count",
-                    f"Этот столик вмещает максимум {table.capacity} гостей",
-                )
+            try:
+                guests = int(guests_count)
+                if guests > table.capacity:
+                    self.add_error(
+                        "guests_count",
+                        f"Этот столик вмещает максимум {table.capacity} гостей"
+                    )
+            except ValueError:
+                pass
+
+    def clean_date(self):
+        date_obj = self.cleaned_data.get("date")
+        if date_obj and date_obj < date.today():
+            raise ValidationError("Нельзя бронировать на прошедшую дату")
+        return date_obj
 
     def clean_guests_count(self):
         guests_count = self.cleaned_data.get("guests_count")
         if guests_count:
-            return int(guests_count)
+            try:
+                guests = int(guests_count)
+                if guests < 1:
+                    raise ValidationError("Количество гостей должно быть не менее 1")
+                return guests
+            except ValueError:
+                raise ValidationError("Некорректное количество гостей")
         return guests_count
 
-    def clean_duration_hours(self):
-        duration_hours = self.cleaned_data.get("duration_hours")
-        if duration_hours:
-            return int(duration_hours)
-        return duration_hours
+    def clean_start_time(self):
+        start_time = self.cleaned_data.get("start_time")
+        if start_time:
+            try:
+                return datetime.strptime(start_time, "%H:%M").time()
+            except ValueError:
+                raise ValidationError("Некорректный формат времени")
+        return start_time
 
 
-class BookingEditForm(forms.ModelForm):
-    duration_hours = forms.ChoiceField(
-        choices=[(1, "1 час"), (2, "2 часа"), (3, "3 часа"), (4, "4 часа")],
-        label="Продолжительность",
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-
-    guests_count = forms.ChoiceField(
-        choices=[],
-        label="Количество гостей",
-        widget=forms.Select(attrs={"class": "form-control"}),
-    )
-
-    class Meta:
-        model = Booking
-        fields = [
-            "table",
-            "date",
-            "start_time",
-            "duration_hours",
-            "guests_count",
-            "special_requests",
-        ]
-        widgets = {
-            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "start_time": forms.TimeInput(
-                attrs={"type": "time", "class": "form-control"}
-            ),
-            "special_requests": forms.Textarea(
-                attrs={"class": "form-control", "rows": 3}
-            ),
-            "table": forms.Select(attrs={"class": "form-control", "id": "id_table"}),
-        }
-        labels = {
-            "table": "Столик",
-            "date": "Дата",
-            "start_time": "Время начала",
-            "special_requests": "Специальные пожелания",
-        }
+class BookingEditForm(BookingForm):
+    """Форма редактирования бронирования"""
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        self.fields["table"].queryset = Table.objects.filter(is_active=True)
+        if self.instance and self.instance.pk:
+            table = self.instance.table
+            guest_choices = [(i, f"{i} чел.") for i in range(1, table.capacity + 1)]
+            self.fields["guests_count"].choices = guest_choices
+            self.fields["guests_count"].initial = self.instance.guests_count
 
-        table_id = None
+            self.fields["duration_hours"].initial = self.instance.duration_hours
 
-        if hasattr(self, "data") and self.data.get("table"):
-            table_id = self.data.get("table")
-        elif self.initial.get("table"):
-            table_id = self.initial.get("table")
-        elif self.instance and self.instance.table:
-            table_id = self.instance.table.id
+            self.fields["start_time"].initial = self.instance.start_time.strftime("%H:%M")
 
-        capacity = settings.MAX_TABLE_CAPACITY
-        selected_table = None
-
-        if table_id:
-            try:
-                selected_table = Table.objects.get(id=table_id)
-                capacity = selected_table.capacity
-            except (Table.DoesNotExist, ValueError):
-                pass
-
-        choices = [(i, f"{i} чел.") for i in range(1, capacity + 1)]
-        self.fields["guests_count"].choices = choices
-
-        if self.instance and self.instance.guests_count:
-            current_guests = self.instance.guests_count
-            if current_guests <= capacity:
-                self.initial["guests_count"] = current_guests
-            else:
-                self.initial["guests_count"] = capacity
-
-        self.selected_table = selected_table
-
-        self.fields["start_time"].help_text = (
-            f"Ресторан работает с {settings.OPEN_TIME} до {settings.CLOSE_TIME}"
-        )
+            date_str = self.instance.date.strftime("%Y-%m-%d")
+            self.fields["date"].initial = date_str
+            self.initial['date'] = date_str
 
     def clean(self):
-        cleaned_data = super().clean()
+        cleaned_data = super(forms.ModelForm, self).clean()
 
         table = cleaned_data.get("table")
+        date_obj = cleaned_data.get("date")
+        start_time = cleaned_data.get("start_time")
+        duration_hours = cleaned_data.get("duration_hours")
         guests_count = cleaned_data.get("guests_count")
 
+        if all([table, date_obj, start_time, duration_hours, guests_count]):
+            try:
+                duration = int(duration_hours)
+                guests = int(guests_count)
+                start_time_obj = start_time
+
+                open_time = datetime.strptime(settings.OPEN_TIME, "%H:%M").time()
+                close_time = datetime.strptime(settings.CLOSE_TIME, "%H:%M").time()
+
+                start_datetime = datetime.combine(date_obj, start_time_obj)
+                end_datetime = start_datetime + timedelta(hours=duration)
+                end_time_obj = end_datetime.time()
+
+                now = datetime.now()
+
+                if date_obj == now.date():
+                    if start_datetime < now + timedelta(hours=1):
+                        self.add_error(
+                            "start_time",
+                            "Бронь должна быть минимум на 1 час позже текущего времени"
+                        )
+
+                if start_time_obj < open_time:
+                    self.add_error(
+                        "start_time",
+                        f"Ресторан открывается в {settings.OPEN_TIME}"
+                    )
+
+                end_date = date_obj
+                if end_time_obj < start_time_obj:
+                    end_date = date_obj + timedelta(days=1)
+
+                if end_date > date_obj:
+                    self.add_error(
+                        "duration_hours",
+                        f"Бронь не может переходить на следующий день"
+                    )
+                    raise ValidationError("")
+                elif end_time_obj > close_time:
+                    self.add_error(
+                        "duration_hours",
+                        f"Бронь завершится в {end_time_obj.strftime('%H:%M')}, но ресторан закрывается в {settings.CLOSE_TIME}"
+                    )
+                    raise ValidationError("")
+
+                if table and not table.is_available(date_obj, start_time_obj, duration,
+                                                    exclude_booking_id=self.instance.id):
+                    busy_times = table.get_busy_times(date_obj)
+                    busy_times_filtered = []
+                    for busy in busy_times:
+                        start_str, end_str = busy.split('-')
+                        if not (start_str == self.instance.start_time.strftime(
+                                '%H:%M') and end_str == self.instance.end_time.strftime('%H:%M')):
+                            busy_times_filtered.append(busy)
+
+                    if busy_times_filtered:
+                        self.add_error(
+                            "start_time",
+                            f"Столик занят на выбранное время. Занятое время: {', '.join(busy_times_filtered)}"
+                        )
+
+                max_future_date = now.date() + timedelta(days=settings.MAX_BOOKING_DAYS_AHEAD)
+                if date_obj > max_future_date:
+                    self.add_error(
+                        "date",
+                        f"Можно бронировать максимум на {settings.MAX_BOOKING_DAYS_AHEAD} дней вперед"
+                    )
+
+            except ValueError as e:
+                self.add_error(None, f"Ошибка обработки данных: {str(e)}")
+
         if table and guests_count:
-            if guests_count > table.capacity:
-                self.add_error(
-                    "guests_count",
-                    f"Этот столик вмещает максимум {table.capacity} гостей",
-                )
+            try:
+                guests = int(guests_count)
+                if guests > table.capacity:
+                    self.add_error(
+                        "guests_count",
+                        f"Этот столик вмещает максимум {table.capacity} гостей"
+                    )
+            except ValueError:
+                pass
 
-    def clean_guests_count(self):
-        guests_count = self.cleaned_data.get("guests_count")
-        if guests_count:
-            return int(guests_count)
-        return guests_count
-
-    def clean_duration_hours(self):
-        duration_hours = self.cleaned_data.get("duration_hours")
-        if duration_hours:
-            return int(duration_hours)
-        return duration_hours
+        return cleaned_data
 
 
 class FeedbackForm(forms.ModelForm):
-    """Форма обратной связи."""
+    """Форма обратной связи"""
 
     class Meta:
         model = Feedback
@@ -244,7 +346,6 @@ class FeedbackForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        """Инициализация формы обратной связи."""
         self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
         if self.user and self.user.is_authenticated:

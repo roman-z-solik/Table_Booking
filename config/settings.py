@@ -116,19 +116,6 @@ OPEN_TIME = os.getenv("OPEN_TIME")
 CLOSE_TIME = os.getenv("CLOSE_TIME")
 MIN_BOOKING_HOURS = int(os.getenv("MIN_BOOKING_HOURS"))
 MAX_BOOKING_HOURS = int(os.getenv("MAX_BOOKING_HOURS"))
-MAX_TABLE_CAPACITY = int(os.getenv("MAX_TABLE_CAPACITY"))
-
-TABLE_CAPACITIES = []
-capacity_choices = os.getenv("TABLE_CAPACITIES")
-for choice in capacity_choices.split(","):
-    value, display = choice.split(":")
-    TABLE_CAPACITIES.append((int(value), display))
-
-BOOKING_STATUSES = []
-status_choices = os.getenv("BOOKING_STATUSES")
-for choice in status_choices.split(","):
-    value, display = choice.split(":")
-    BOOKING_STATUSES.append((value, display))
 
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"

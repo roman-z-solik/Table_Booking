@@ -51,7 +51,7 @@
                     <div class="card-body">
                         <h5 class="card-title">Столик №{{ status.table.number }}</h5>
                         <p class="card-text">
-                            <strong>Вместимость:</strong> {{ status.table.get_capacity_display }}<br>
+                            <strong>Вместимость:</strong> {{ status.table.capacity }} чел.<br>
                             {% if status.table.is_vip %}
                             <span class="badge bg-warning">VIP</span><br>
                             {% endif %}

@@ -3,7 +3,6 @@ from .models import (
     Table,
     Booking,
     Feedback,
-    RestaurantSettings,
     Page,
     GalleryImage,
     MenuItem,
@@ -44,19 +43,6 @@ class FeedbackAdmin(admin.ModelAdmin):
     readonly_fields = ["created_at"]
 
 
-@admin.register(RestaurantSettings)
-class RestaurantSettingsAdmin(admin.ModelAdmin):
-    list_display = ["max_table_capacity"]
-
-    def has_add_permission(self, request):
-        """Запрещаем создавать более одной записи"""
-        return not RestaurantSettings.objects.exists()
-
-    def has_delete_permission(self, request, obj=None):
-        """Запрещаем удаление единственной записи"""
-        return False
-
-
 class GalleryImageInline(admin.TabularInline):
     model = GalleryImage
     extra = 1
@@ -91,7 +77,6 @@ class PageAdmin(admin.ModelAdmin):
     search_fields = ["title", "content"]
 
     def get_inline_instances(self, request, obj=None):
-        """Показываем только нужные inline в зависимости от типа страницы"""
         if not obj:
             return []
 

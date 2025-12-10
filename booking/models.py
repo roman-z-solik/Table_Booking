@@ -1,6 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
-from django.conf import settings
+from django.core.validators import MinValueValidator
 from datetime import datetime, timedelta
 
 User = get_user_model()
@@ -8,9 +8,12 @@ User = get_user_model()
 
 class Table(models.Model):
     """Модель столика ресторана"""
-
     number = models.IntegerField(unique=True, verbose_name="Номер столика")
-    capacity = models.IntegerField(verbose_name="Вместимость")
+    capacity = models.IntegerField(
+        verbose_name="Вместимость",
+        validators=[MinValueValidator(1)],
+        help_text="Максимальное количество гостей"
+    )
     is_vip = models.BooleanField(default=False, verbose_name="VIP")
     is_active = models.BooleanField(default=True, verbose_name="Активен")
     description = models.TextField(blank=True, verbose_name="Описание")
@@ -23,12 +26,7 @@ class Table(models.Model):
         verbose_name_plural = "Столики"
 
     def __str__(self):
-        return f"Столик №{self.number}"
-
-    def get_capacity_display(self):
-        """Возвращает отображаемое значение вместимости"""
-        capacities = dict(settings.TABLE_CAPACITIES)
-        return capacities.get(self.capacity, "Неизвестно")
+        return f"Столик №{self.number} ({self.capacity} чел.)"
 
     def get_busy_times(self, date):
         """Возвращает список занятых временных слотов"""
@@ -42,7 +40,7 @@ class Table(models.Model):
 
         return busy_times
 
-    def is_available(self, date, start_time, duration_hours):
+    def is_available(self, date, start_time, duration_hours, exclude_booking_id=None):
         """Проверяет доступность столика в указанное время"""
         end_time = (
             datetime.combine(date, start_time) + timedelta(hours=duration_hours)
@@ -52,12 +50,14 @@ class Table(models.Model):
             start_time__lt=end_time, end_time__gt=start_time
         )
 
+        if exclude_booking_id:
+            conflicting_bookings = conflicting_bookings.exclude(id=exclude_booking_id)
+
         return not conflicting_bookings.exists()
 
 
 class Booking(models.Model):
     """Модель бронирования столика"""
-
     user = models.ForeignKey(
         User, on_delete=models.CASCADE, verbose_name="Пользователь"
     )
@@ -95,7 +95,6 @@ class Booking(models.Model):
 
 class Feedback(models.Model):
     """Модель отзыва о ресторане"""
-
     name = models.CharField(max_length=100, verbose_name="Имя")
     email = models.EmailField(verbose_name="Email")
     message = models.TextField(verbose_name="Сообщение")
@@ -110,39 +109,8 @@ class Feedback(models.Model):
         return f"Отзыв от {self.name}"
 
 
-class RestaurantSettings(models.Model):
-    """Настройки ресторана"""
-
-    max_table_capacity = models.IntegerField(
-        default=12, verbose_name="Максимальная вместимость столика"
-    )
-    table_capacities = models.JSONField(
-        default=list,
-        verbose_name="Доступные вместимости столиков",
-        help_text="В формате [2, 4, 6, 8, 10, 12]",
-    )
-    booking_statuses = models.JSONField(
-        default=list,
-        verbose_name="Статусы бронирований",
-        help_text="В формате ['active', 'cancelled']",
-    )
-
-    class Meta:
-        verbose_name = "Настройки ресторана"
-        verbose_name_plural = "Настройки ресторана"
-
-    def __str__(self):
-        return "Настройки ресторана"
-
-    def save(self, *args, **kwargs):
-        """Разрешаем только одну запись настроек"""
-        self.id = 1
-        super().save(*args, **kwargs)
-
-
 class Page(models.Model):
     """Модель для страниц сайта"""
-
     PAGE_TYPES = [
         ("about", "О нас"),
         ("gallery", "Галерея"),
@@ -175,7 +143,6 @@ class Page(models.Model):
 
 class GalleryImage(models.Model):
     """Изображения для галереи"""
-
     page = models.ForeignKey(
         Page,
         on_delete=models.CASCADE,
@@ -199,7 +166,6 @@ class GalleryImage(models.Model):
 
 class MenuItem(models.Model):
     """Позиции меню"""
-
     page = models.ForeignKey(
         Page,
         on_delete=models.CASCADE,
@@ -229,7 +195,6 @@ class MenuItem(models.Model):
 
 class TeamMember(models.Model):
     """Члены команды"""
-
     page = models.ForeignKey(
         Page,
         on_delete=models.CASCADE,

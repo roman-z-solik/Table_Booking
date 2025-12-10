@@ -6,8 +6,18 @@
         <div class="card">
             <div class="card-header">
                 <h4 class="mb-0">Редактирование бронирования</h4>
+                <small class="text-muted">Бронирование #{{ booking.id }}</small>
             </div>
             <div class="card-body">
+
+                {% if messages %}
+                {% for message in messages %}
+                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+                {% endfor %}
+                {% endif %}
 
                 {% if form.errors %}
                 <div class="alert alert-danger">
@@ -28,22 +38,25 @@
                 <form method="post" id="booking-form">
                     {% csrf_token %}
 
+                    <div class="alert alert-info">
+                        <strong>Текущий столик:</strong> №{{ booking.table.number }} ({{ booking.table.capacity }} чел.)
+                        <input type="hidden" name="table" value="{{ booking.table.id }}">
+                    </div>
+
                     <div class="row">
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="{{ form.table.id_for_label }}" class="form-label">{{ form.table.label }}</label>
-                                {{ form.table }}
+                                <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
+                                {{ form.date }}
+                                {% if form.date.help_text %}
+                                <div class="form-text">{{ form.date.help_text }}</div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="col-md-6">
                             <div class="mb-3">
-                                <label for="{{ form.date.id_for_label }}" class="form-label">{{ form.date.label }}</label>
-                                <input type="date"
-                                       name="date"
-                                       class="form-control"
-                                       value="{{ booking.date|date:'Y-m-d' }}"
-                                       required
-                                       id="id_date">
+                                <label for="{{ form.guests_count.id_for_label }}" class="form-label">{{ form.guests_count.label }}</label>
+                                {{ form.guests_count }}
                             </div>
                         </div>
                     </div>
@@ -52,12 +65,7 @@
                         <div class="col-md-6">
                             <div class="mb-3">
                                 <label for="{{ form.start_time.id_for_label }}" class="form-label">{{ form.start_time.label }}</label>
-                                <input type="time"
-                                       name="start_time"
-                                       class="form-control"
-                                       value="{{ booking.start_time|time:'H:i' }}"
-                                       required
-                                       id="id_start_time">
+                                {{ form.start_time }}
                                 {% if form.start_time.help_text %}
                                 <div class="form-text">{{ form.start_time.help_text }}</div>
                                 {% endif %}
@@ -72,16 +80,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label for="{{ form.guests_count.id_for_label }}" class="form-label">{{ form.guests_count.label }}</label>
-                        {{ form.guests_count }}
-                    </div>
-
-                    <div class="mb-3">
                         <label for="{{ form.special_requests.id_for_label }}" class="form-label">{{ form.special_requests.label }}</label>
-                        <textarea name="special_requests"
-                                  class="form-control"
-                                  rows="3"
-                                  id="id_special_requests">{{ booking.special_requests|default:'' }}</textarea>
+                        {{ form.special_requests }}
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
@@ -96,25 +96,16 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const tableSelect = document.querySelector('#id_table');
     const dateInput = document.querySelector('#id_date');
 
-    function updateForm() {
-        const url = new URL(window.location.href);
+    const today = new Date().toISOString().split('T')[0];
+    if (dateInput) dateInput.setAttribute('min', today);
 
-        if (tableSelect.value) {
-            url.searchParams.set('table_id', tableSelect.value);
-        }
-
-        if (dateInput.value) {
-            url.searchParams.set('date', dateInput.value);
-        }
-
-        window.location.href = url.toString();
-    }
-
-    tableSelect.addEventListener('change', updateForm);
-    dateInput.addEventListener('change', updateForm);
+    const maxDays = {{ MAX_BOOKING_DAYS_AHEAD|default:30 }};
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + maxDays);
+    const maxDateStr = maxDate.toISOString().split('T')[0];
+    if (dateInput) dateInput.setAttribute('max', maxDateStr);
 });
 </script>
 {% endblock %}
