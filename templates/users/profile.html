@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Личный кабинет</h4>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Имя:</strong> {{ user.first_name }}</p>
+                        <p><strong>Фамилия:</strong> {{ user.last_name }}</p>
+                        <p><strong>Email:</strong> {{ user.email }}</p>
+                        <p><strong>Телефон:</strong> {{ user.phone|default:"Не указан" }}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <div class="card-body">
+                <div class="d-grid gap-2 d-md-flex justify-content-md-start">
+                    <a href="{% url 'profile_edit' %}" class="btn btn-primary me-md-2">Редактировать профиль</a>
+                    <a href="{% url 'profile_delete' %}" class="btn btn-outline-danger">Удалить аккаунт</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

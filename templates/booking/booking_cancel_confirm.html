@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                <h4 class="mb-0">Отмена бронирования</h4>
+            </div>
+            <div class="card-body">
+                <p>Вы уверены, что хотите отменить это бронирование?</p>
+                
+                <div class="alert alert-warning">
+                    <p class="mb-1"><strong>Дата:</strong> {{ booking.date|date:"d.m.Y" }}</p>
+                    <p class="mb-1"><strong>Время:</strong> {{ booking.start_time|time:"H:i" }} - {{ booking.end_time|time:"H:i" }}</p>
+                    <p class="mb-1"><strong>Гостей:</strong> {{ booking.guests_count }}</p>
+                    <p class="mb-1"><strong>Стол:</strong> №{{ booking.table.number }} ({{ booking.table.capacity }} чел.)</p>
+                    {% if booking.special_requests %}
+                    <p class="mb-0"><strong>Особые пожелания:</strong> {{ booking.special_requests }}</p>
+                    {% endif %}
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'booking_list' %}" class="btn btn-secondary me-md-2">Вернуться</a>
+                        <button type="submit" class="btn btn-danger">Да, отменить бронирование</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ page_title }} - {{ restaurant_name }}{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8 text-center">
+            <div style="font-size: 5rem;">🚧</div>
+            <h1 class="mt-4">{{ page_title }} находится в разработке</h1>
+            <p class="lead mt-4">
+                Мы активно работаем над наполнением этой страницы. 
+                Здесь скоро появится интересный контент!
+            </p>
+            <div class="mt-5">
+                <a href="{% url 'home' %}" class="btn btn-primary">Вернуться на главную</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
