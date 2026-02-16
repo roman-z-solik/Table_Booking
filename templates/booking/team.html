@@ -1,0 +1,57 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h1 class="text-center mb-4">{{ page.title }}</h1>
+
+    {% if page.subtitle %}
+    <p class="lead text-center mb-5">{{ page.subtitle }}</p>
+    {% endif %}
+
+    {% if page.main_image %}
+    <div class="text-center mb-4">
+        <img src="{{ page.main_image.url }}" alt="{{ page.title }}" class="img-fluid rounded" style="max-height: 500px;">
+    </div>
+    {% endif %}
+    
+    {% if page.content %}
+    <div class="row mb-5">
+        <div class="col-lg-8 mx-auto">
+            {{ page.content|linebreaks }}
+        </div>
+    </div>
+    {% endif %}
+    
+    {% if team_members %}
+    <div class="row">
+        {% for member in team_members %}
+        <div class="col-lg-3 col-md-4 col-sm-6 mb-4">
+            <div class="card h-100 text-center border-0 shadow-sm">
+                <div class="card-header bg-white border-0 pb-0">
+                    {% if member.photo %}
+                    <img src="{{ member.photo.url }}" class="rounded-circle mx-auto"
+                         alt="{{ member.name }}"
+                         style="width: 120px; height: 120px; object-fit: cover; border: 3px solid #f8f9fa;">
+                    {% else %}
+                    <div class="rounded-circle mx-auto bg-secondary d-flex align-items-center justify-content-center"
+                         style="width: 120px; height: 120px; border: 3px solid #f8f9fa;">
+                        <span class="text-white fs-3">{{ member.name|first|upper }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-body pt-2">
+                    <h5 class="card-title mb-1">{{ member.name }}</h5>
+                    <h6 class="card-subtitle mb-3 text-muted">{{ member.position }}</h6>
+                    <p class="card-text small">{{ member.bio|truncatewords:20 }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="alert alert-info text-center">
+        <p class="mb-0">Информация о команде пока не добавлена. Мы скоро представим нашу команду!</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

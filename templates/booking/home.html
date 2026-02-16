@@ -1,0 +1,138 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Главная - {{ restaurant_name }}{% endblock %}
+
+{% block content %}
+{% if not user.is_authenticated %}
+<div class="bg-light py-5 mb-5 rounded">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8 text-center">
+                <h2 class="display-6 mb-4">Забронируйте столик онлайн</h2>
+                <p class="lead mb-4">Быстрое бронирование, выбор столика, удобное управление</p>
+                <p class="mb-1 small text-secondary">Для бронирования столика надо зарегистрироваться.</p>
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <a href="{% url 'register' %}" class="btn btn btn-outline-primary px-4 me-md-2">Регистрация</a>
+                    <a href="{% url 'login' %}" class="btn btn btn-outline-success px-4">Войти в аккаунт</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="text-center">{{ restaurant_name }}</h1>
+        <p class="lead text-center">{{ restaurant_description }}</p>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-12">
+        <h3 class="text-center mb-4">Наши столики</h3>
+        <div class="row">
+            {% for status in table_status %}
+            <div class="col-xl-3 col-lg-4 col-md-6 mb-4">
+                <div class="card h-100 table-card shadow-sm">
+                    <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px; overflow: hidden;">
+                        {% if status.table.image %}
+                            <img src="{{ status.table.image.url }}"
+                                 alt="Столик №{{ status.table.number }}"
+                                 style="width: 100%; height: 100%; object-fit: cover;">
+                        {% else %}
+                            <div class="text-center">
+                                <div style="font-size: 48px;">🍽️</div>
+                                <small class="text-muted">Столик №{{ status.table.number }}</small>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="card-body">
+                        <h5 class="card-title">Столик №{{ status.table.number }}</h5>
+                        <p class="card-text">
+                            <strong>Вместимость:</strong> {{ status.table.capacity }} чел.<br>
+                            {% if status.table.is_vip %}
+                            <span class="badge bg-warning">VIP</span><br>
+                            {% endif %}
+                            {% if status.table.description %}
+                            <small class="text-muted">{{ status.table.description }}</small><br>
+                            {% endif %}
+
+                            {% if status.has_bookings_today %}
+                            <strong>Брони на сегодня:</strong>
+                            <div class="mt-2">
+                                {% for time in status.busy_times %}
+                                <span class="badge bg-secondary me-1 mb-1">{{ time }}</span>
+                                {% endfor %}
+                            </div>
+                            <small class="text-muted d-block mt-1">Всего: {{ status.bookings_count }} брони</small>
+                            {% else %}
+                            <span class="badge bg-success mt-2">Свободен весь день</span>
+                            {% endif %}
+                        </p>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        {% if user.is_authenticated %}
+                            <a href="{% url 'booking_create' %}?table_id={{ status.table.id }}"
+                               class="btn btn-primary w-100">
+                                Забронировать
+                            </a>
+                        {% else %}
+                            <a href="{% url 'login' %}" class="btn btn-outline-primary w-100">
+                                Войти для бронирования
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% empty %}
+            <div class="col-12">
+                <div class="alert alert-info text-center">
+                    <p class="mb-0">Столики временно недоступны</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="row mt-5">
+    <div class="col-md-6">
+        <h3>Контактная информация</h3>
+        <p><strong>Адрес:</strong> {{ address }}</p>
+        <p><strong>Телефон:</strong> {{ contact_phone }}</p>
+        <p><strong>Email:</strong> {{ contact_email }}</p>
+    </div>
+    <div class="col-md-6">
+        <h3>Часы работы</h3>
+        <p>Ежедневно с {{ open_time }} до {{ close_time }}</p>
+
+        {% if booking_rules %}
+        <h4 class="mt-4">Правила бронирования</h4>
+        <ul class="list-unstyled">
+            {% for rule in booking_rules %}
+            <li class="mb-1">✓ {{ rule }}</li>
+            {% endfor %}
+        </ul>
+        {% endif %}
+    </div>
+</div>
+
+<style>
+.table-card {
+    transition: transform 0.2s;
+    border: 1px solid #dee2e6;
+}
+.table-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+.card-img-top {
+    border-bottom: 1px solid #dee2e6;
+}
+.badge {
+    font-size: 0.8em;
+}
+</style>
+{% endblock %}

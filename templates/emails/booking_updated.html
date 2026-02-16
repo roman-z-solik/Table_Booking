@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Изменение брони</title>
+</head>
+<body>
+    <h2>Изменение в бронировании столика</h2>
+
+    <p>Ув. {{ user.first_name|default:user.username }},</p>
+
+    <p>Ваше бронирование в ресторане "{{ restaurant_name }}" было изменено.</p>
+
+    <div style="background-color: #f8f9fa; padding: 15px; border-radius: 5px; margin: 15px 0;">
+        <h3>Ваше бронирование:</h3>
+        <ul style="list-style: none; padding-left: 0;">
+            <li><strong>Дата:</strong> {{ booking.date|date:"d.m.Y" }}</li>
+            <li><strong>Время:</strong> {{ booking.start_time|time:"H:i" }} - {{ booking.end_time|time:"H:i" }}</li>
+            <li><strong>Столик:</strong> №{{ booking.table.number }} (на {{ booking.table.capacity }} человек)</li>
+            <li><strong>Количество гостей:</strong> {{ booking.guests_count }}</li>
+            {% if booking.special_requests %}
+            <li><strong>Особые пожелания:</strong> {{ booking.special_requests }}</li>
+            {% endif %}
+        </ul>
+    </div>
+
+    <p><strong>Контакты ресторана:</strong></p>
+    <p>{{ restaurant_name }}<br>
+    Адрес: {{ address }}<br>
+    Телефон: {{ contact_phone }}<br>
+    Email: {{ contact_email }}</p>
+
+    <p>Вы можете управлять своими бронированиями в <a href="http://127.0.0.1:8000/booking/list/">личном кабинете</a>.</p>
+
+    <p>С уважением,<br>
+    Команда ресторана "{{ restaurant_name }}"</p>
+</body>
+</html>
